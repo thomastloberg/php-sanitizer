@@ -3,7 +3,7 @@
 require_once "sanitize.php";
 
  /*
- * The Sanitizer class
+ * Initialize the Sanitizer class
  */
 $Sanitizer = new tloberg\Sanitizer();
 
@@ -69,44 +69,28 @@ $object_filter_custom = array(
 
 
 /**
- * TESTS
+ * Examples
  */
 
-// Return tests as json data
-header("Content-Type: application/json");
+// Sanitize String
+// echo $Sanitizer->Sanitize_Variable($string, $Sanitizer->FILTER_STRING());
 
+// Sanitize Double
+// echo $Sanitizer->Sanitize_Variable($number, $Sanitizer->FILTER_DOUBLE());
 
-// String
-// echo json_encode(array("result" => $Sanitizer->Sanitize_Variable($string, $Sanitizer->FILTER_STRING())));
+// Sanitize String Array
+// echo $Sanitizer->Sanitize_Array($array, $Sanitizer->FILTER_STRING());
 
-// Number
-echo json_encode(array(
-    "input"  => array(
-        "value" => $number,
-        "type" => gettype($number),
-    ),
-    "result" => array(
-        "value" => $Sanitizer->Sanitize_Variable($number, $Sanitizer->FILTER_DOUBLE()),
-        "type" => gettype($Sanitizer->Sanitize_Variable($number, $Sanitizer->FILTER_DOUBLE()))
-    ),
-));
+// Sanitize Array
+// echo $Sanitizer->Sanitize_Array($array, $array_filter);
 
-// String array
-// echo json_encode($Sanitizer->Sanitize_Array($array, $Sanitizer->FILTER_STRING()));
+// Sanitize Object
+// echo $Sanitizer->Sanitize_Object((object) $object, (object) $object_filter);
 
-// Array with keys and filter for those keys
-// echo json_encode($Sanitizer->Sanitize_Array($array, $array_filter));
+// Sanitize Object with Custom Filter
+// echo $Sanitizer->Sanitize_Object((object) $object, (object) $object_filter_custom);
 
-// Array with keys and filter for those keys
-// echo json_encode($Sanitizer->Sanitize_Array($object, $object_filter));
-
-// Object with keys and filter for those keys
-// echo json_encode($Sanitizer->Sanitize_Object((object) $object, (object) $object_filter));
-
-// Object with keys and filter for those keys with custom filter
-// echo json_encode($Sanitizer->Sanitize_Object((object) $object, (object) $object_filter_custom));
-
-// Object with keys and filter for those keys with custom filter deep object
-// echo json_encode($Sanitizer->Sanitize_Object((object) $object_deep, (object) $object_deep_filter));
+// Sanitize Objects inside Objects
+// echo $Sanitizer->Sanitize_Object((object) $object_deep, (object) $object_deep_filter);
 
 ?>
