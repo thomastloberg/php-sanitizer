@@ -7,14 +7,25 @@ need without manually checking each one.
   
   
 ## Supported formats:  
-Raw                     # No sanitize  
-Array   (multi layer)   # One or multiple filters  
-Object  (multi layer)   # One or multiple filters  
-Double                  # Sanitize Double  
-Float                   # Sanitize Float  
-Integer                 # Sanitize Integer  
-String                  # Sanitize String   (flags optional)  
-Filename                # Sanitize Filename (flag ALLOW_NORWEGIAN optional)  
-URL                     # Sanitize URL  
-Email                   # Sanitize Email  
-Custom                  # Create your own filter
+1. Raw  
+  No sanitize  
+2. Array (multi layer)  
+  One or multiple filters  
+3. Object (multi layer)  
+  One or multiple filters  
+4. Double  
+  Sanitize Double  
+5. Float  
+  Sanitize Float  
+6. Integer  
+  Sanitize Integer  
+7. String  
+  Sanitize String   (flags optional)  
+8. Filename  
+  Sanitize Filename (flag ALLOW_NORWEGIAN optional)  
+9. URL  
+  Sanitize URL  
+10. Email  
+  Sanitize Email  
+11. Custom  
+  Create your own filter
