@@ -7,7 +7,8 @@ need without manually checking each one.
   
   
   
-## Supported formats:  
+  
+# Supported formats:  
 1. **Raw**  
   No sanitize  
   
