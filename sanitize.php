@@ -2,8 +2,8 @@
 
 /**
  *                  Sanitizer
- * If you want to trust the data you save and 
- * make sure an object or array have the keys you 
+ * If you want to trust the data and make sure
+ * an object or array have the keys you
  * need without manually checking each one.
  * 
  * @author Thomas Tufta Løberg
@@ -13,8 +13,8 @@
  *      Raw                     # No sanitize
  *      Array   (multi layer)   # One or multiple filters
  *      Object  (multi layer)   # One or multiple filters
- *      Double  (BUG)           # Sanitize Double
- *      Float   (BUG)           # Sanitize Float
+ *      Double             	# Sanitize Double
+ *      Float              	# Sanitize Float
  *      Integer                 # Sanitize Integer
  *      String                  # Sanitize String   (flags optional)
  *      Filename                # Sanitize Filename (flag ALLOW_NORWEGIAN optional)
@@ -92,7 +92,6 @@ class Sanitizer {
         return function($var) { return $this->FUNCTION_FILTER_DOUBLE($var); };
     }
     public function FUNCTION_FILTER_DOUBLE($var) {
-        // FLOAT === DOUBLE
         return (double) filter_var($var, FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION);
     }
 
@@ -100,7 +99,6 @@ class Sanitizer {
         return function($var) { return $this->FUNCTION_FILTER_FLOAT($var); };
     }
     public function FUNCTION_FILTER_FLOAT($var) {
-        // FLOAT === DOUBLE
         return (float) filter_var($var, FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION);
     }
 
