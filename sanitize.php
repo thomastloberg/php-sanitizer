@@ -17,7 +17,7 @@
  *      Float              	# Sanitize Float
  *      Integer                 # Sanitize Integer
  *      String                  # Sanitize String   (flags optional)
- *      Filename                # Sanitize Filename (flag ALLOW_NORWEGIAN optional)
+ *      Filename                # Sanitize Filename (flag DENY_NORWEGIAN optional)
  *      URL                     # Sanitize URL
  *      Email                   # Sanitize Email
  */
@@ -31,7 +31,7 @@ class Sanitizer {
     public $ALLOW_QUOTES = "ALLOW_QUOTES";          // Allow single and double quotes in string
     public $NO_TRIM      = "NO_TRIM";               // Allow white-space at ends in string
     public $NO_HTMLSTRIP = "NO_HTMLSTRIP";          // Allow HTML tags in string
-    public $ALLOW_NORWEGIAN = "ALLOW_NORWEGIAN";    // Allow norwegian letters
+    public $DENY_NORWEGIAN = "DENY_NORWEGIAN";      // Deny norwegian letters
 
 
     public function __construct() {}
@@ -135,8 +135,8 @@ class Sanitizer {
         $regex = "0-9a-zA-Z,\\\\.\-\/=$|\*\+\[\]!\?_:;@#%&\(\) \n\r\t";
 
 
-        // if ALLOW_NORWEGIAN flag present then add flag
-        if(in_array($this->ALLOW_NORWEGIAN, $flags)) {
+        // if DENY_NORWEGIAN flag not present then add flag
+        if(!in_array($this->DENY_NORWEGIAN, $flags)) {
             $regex .= "æøåÆØÅ";
         }
 
@@ -174,8 +174,8 @@ class Sanitizer {
         // Default regex / allowed chars
         $regex = "a-zA-Z0-9_\-\.";
 
-        // if ALLOW_NORWEGIAN flag present then add flag
-        if(in_array($this->ALLOW_NORWEGIAN, $flags)) {
+        // if DENY_NORWEGIAN flag not present then add flag
+        if(!in_array($this->DENY_NORWEGIAN, $flags)) {
             $regex .= "æøåÆØÅ";
         }
 
