@@ -13,11 +13,12 @@
  *      Raw                     # No sanitize
  *      Array   (multi layer)   # One or multiple filters
  *      Object  (multi layer)   # One or multiple filters
- *      Double             	# Sanitize Double
- *      Float              	# Sanitize Float
+ *      Double             	    # Sanitize Double
+ *      Float              	    # Sanitize Float
  *      Integer                 # Sanitize Integer
  *      String                  # Sanitize String   (flags optional)
  *      Filename                # Sanitize Filename (flag DENY_NORWEGIAN optional)
+ *      Filepath                # Sanitize Filepath (flag DENY_NORWEGIAN optional)
  *      URL                     # Sanitize URL
  *      Email                   # Sanitize Email
  */
@@ -173,6 +174,30 @@ class Sanitizer {
 
         // Default regex / allowed chars
         $regex = "a-zA-Z0-9_\-\.";
+
+        // if DENY_NORWEGIAN flag not present then add flag
+        if(!in_array($this->DENY_NORWEGIAN, $flags)) {
+            $regex .= "æøåÆØÅ";
+        }
+
+        // non optional function which removes unwanted chars
+        $var = trim($var);
+        $var = strip_tags($var);
+
+        return (string) preg_replace("/[^{$regex}]/", "", $var);
+    }
+
+    public function FILTER_FILEPATH($flags=null) {
+        return function($var) use ($flags) {
+            return $this->FUNCTION_FILTER_FILEPATH($var, $flags);
+        };
+    }
+    public function FUNCTION_FILTER_FILEPATH($var, $flags=null) {
+        // error prevention
+        if(!is_array($flags)) { $flags = array($flags); }
+
+        // Default regex / allowed chars
+        $regex = "a-zA-Z0-9_\-\.\\\\\/:";
 
         // if DENY_NORWEGIAN flag not present then add flag
         if(!in_array($this->DENY_NORWEGIAN, $flags)) {
