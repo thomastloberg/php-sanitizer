@@ -5,7 +5,7 @@
  *                 PHP Sanitizer
  * 
  * 
- * @version 1.1.0
+ * @version 1.1.1
  * @author Thomas Tufta Løberg
  * @link https://github.com/thomastloberg/php-sanitizer
  * @license https://github.com/thomastloberg/php-sanitizer/LICENSE
@@ -27,10 +27,10 @@
  *      Raw             # No sanitize
  *      Array           # One or multiple filters functions. One function in filter array will run function on all keys in input array
  *      Object          # One or multiple filters functions. One function in filter object will run function on all keys in input object
- *      Double          # Sanitize Double    (optional flags: STRICT)
- *      Float           # Sanitize Float     (optional flags: STRICT)
- *      Boolean         # Sanitize Boolean
+ *      Double          # Sanitize Double    (optional flags: NO_VALIDATION, STRICT)
+ *      Float           # Sanitize Float     (optional flags: NO_VALIDATION, STRICT)
  *      Integer         # Sanitize Integer   (optional flags: NO_VALIDATION, STRICT)
+ *      Boolean         # Sanitize Boolean
  *      String          # Sanitize String    (optional flags: DENY_NORWEGIAN, NO_TRIM, NO_HTMLSTRIP, ALLOW_QUOTES)
  *      Filename        # Sanitize Filename  (optional flags: DENY_NORWEGIAN)
  *      Filepath        # Sanitize Filepath  (optional flags: DENY_NORWEGIAN)
@@ -40,6 +40,7 @@
  *      Timestamp       # Sanitize timestamp (optional flags: NO_VALIDATION)
  *      Date            # Sanitize Date      (optional flags: NO_VALIDATION)
  *      DateTime        # Sanitize DateTime  (optional flags: NO_VALIDATION)
+ *      Custom
  * 
  * 
  * Validation formats:
@@ -79,7 +80,7 @@ class Sanitizer {
         /**
          * Default: return null if invalid data (no data or wrong type)
          */
-        return null;
+        // return null;
 
 
         /**
@@ -160,7 +161,13 @@ class Sanitizer {
                     }
                     else {
 
-                        if(is_object($value)) {
+                        if(is_object($value) && is_object($filter)) {
+                            $return_array[$key] = $this->Sanitize_Array((array) $value, $filter, $flags);
+                        }
+                        elseif(is_array($value) && is_array($filter)) {
+                            $return_array[$key] = $this->Sanitize_Array($value, $filter, $flags);
+                        }
+                        elseif(is_object($value)) {
                             $return_array[$key] = $this->INVALID_DATA(null, "Object");
                         }
                         elseif(is_array($value)) {
@@ -212,7 +219,13 @@ class Sanitizer {
                         }
                         else {
 
-                            if(is_object($value)) {
+                            if(is_object($value) && is_object($filter[0])) {
+                                $return_array[$key] = $this->Sanitize_Array((array) $value, $filter[0], $flags);
+                            }
+                            elseif(is_array($value) && is_array($filter[0])) {
+                                $return_array[$key] = $this->Sanitize_Array($value, $filter[0], $flags);
+                            }
+                            elseif(is_object($value)) {
                                 $return_array[$key] = $this->INVALID_DATA(null, "Object");
                             }
                             elseif(is_array($value)) {
