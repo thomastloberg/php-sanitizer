@@ -69,31 +69,40 @@ After sanitizing variable it will get passed through a validation proces and ret
 
 ## Validation formats  
 1. **Integer**  
-  All numbers (double, float, integer) accepted  
+   Boolean result if variable provided is numeric.  
   
 2. **Integer (strict)**  
-  ONLY integer
+   Boolean result if variable provided is a integer and only integer value.  
   
 3. **Double**  
-  All numbers (double, float, integer) accepted  
+   Boolean result if variable provided is a double or any other number.  
   
 4. **Double (strict)**  
-  ONLY double  
+   Boolean result if variable provided is a double and only double value.  
   
 5. **Float**  
-  All numbers (double, float, integer) accepted  
+   Boolean result if variable provided is a float or any other number.    
   
 6. **Float (strict)**  
-  ONLY float  
+   Boolean result if variable provided is a float and only float value.  
   
 7. **URL**  
+    Boolean result if string provided is a valid URL.  
   
 8. **Email**  
+    Boolean result if string provided is a valid email address.  
   
 9. **Year**  
+    Boolean result if variable provided is 4 numbers.  
   
 10. **Timestamp**  
+    Boolean result if variable provided is php timestamp.   
   
-11. **Date**  
+11. **Date** 
+    Boolean result if string provided is SQL Date -formatted.  
   
 12. **Datetime**  
+    Boolean result if string provided is SQL Datetime -formatted.  
+  
+13. **JSON** 
+    Boolean result if string provided is JSON -formatted.  
