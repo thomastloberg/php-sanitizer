@@ -1,14 +1,8 @@
 # PHP Sanitizer  
 Powerfull PHP Sanitizer for any variable.  
   
-If you want to trust the data and make sure  
-an object or array have the keys you  
-need without manually checking each one.  
-  
-After sanitizing variable it will get passed  
-through a validation proces and return  
-INVALID_DATA() if no data / invalid  
-INVALID_DATA Default answer: null  
+If you want to trust the data and make sure an object or array have the keys you need without manually checking each one.  
+After sanitizing variable it will get passed through a validation proces and return INVALID_DATA() if no data / invalid INVALID_DATA Default answer: null.  
   
   
 # How to  
