@@ -5,7 +5,7 @@
  *                 PHP Sanitizer
  * 
  * 
- * @version 1.1.3
+ * @version 1.1.4
  * @author Thomas Tufta Løberg
  * @link https://github.com/thomastloberg/php-sanitizer
  * @license https://github.com/thomastloberg/php-sanitizer/LICENSE
@@ -75,6 +75,8 @@ class Sanitizer {
     public $NO_VALIDATION  = "NO_VALIDATION";       // Prevent default validation on: Double, Float, Integer, Email, Date, Datetime
     public $DEEP_ARRAY     = "DEEP_ARRAY";          // Sanitize_Array and Sanitize_Object flag where simple filter will filter ALL array keys and object properties
     public $EXPECT_JSON    = "EXPECT_JSON";         // Look for and decode JSON if found before continue
+    public $ONLY_POSITIVE  = "ONLY_POSITIVE";       // Only accept positive number in: Integer, Float or Double
+    public $ONLY_NEGATIVE  = "ONLY_NEGATIVE";       // Only accept negative number in: Integer, Float or Double
 
     
     public function __construct() {}
@@ -438,12 +440,29 @@ class Sanitizer {
         // error prevention: if flags isn't array then put the flag or NULL into an array
         if(!is_array($flags)) { $flags = array($flags); }
 
+
         // sanitize variable
         $var = filter_var($var, FILTER_SANITIZE_NUMBER_INT);
 
-         // if NO_VALIDATION flag present then return without validation
-         if(in_array($this->NO_VALIDATION, $flags)) {
+
+        /**
+         * Flags
+         */
+        if(in_array($this->NO_VALIDATION, $flags)) {
+            // return without validation
             return $this->RETURN_IF_NOT_EMPTY((integer) $var);
+        }
+        if(in_array($this->ONLY_POSITIVE, $flags)) {
+            if(!$this->FUNCTION_VALIDATE_POSITIVE_INTEGER($var)) {
+                // return INVALID_DATA if not positive number
+                return $this->INVALID_DATA("Integer");
+            }
+        }
+        if(in_array($this->ONLY_NEGATIVE, $flags)) {
+            if(!$this->FUNCTION_VALIDATE_NEGATIVE_INTEGER($var)) {
+                // return INVALID_DATA if not negative number
+                return $this->INVALID_DATA("Integer");
+            }
         }
 
         // return null if no valid integer
@@ -481,12 +500,29 @@ class Sanitizer {
         // error prevention: if flags isn't array then put the flag or NULL into an array
         if(!is_array($flags)) { $flags = array($flags); }
 
+
         // sanitize variable
         $var = filter_var($var, FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION);
 
-         // if NO_VALIDATION flag present then return without validation
-         if(in_array($this->NO_VALIDATION, $flags)) {
-            return $this->RETURN_IF_NOT_EMPTY((double) $var);
+
+        /**
+         * Flags
+         */
+        if(in_array($this->NO_VALIDATION, $flags)) {
+            // return without validation
+            return $this->RETURN_IF_NOT_EMPTY((integer) $var);
+        }
+        if(in_array($this->ONLY_POSITIVE, $flags)) {
+            if(!$this->FUNCTION_VALIDATE_POSITIVE_INTEGER($var)) {
+                // return INVALID_DATA if not positive number
+                return $this->INVALID_DATA("Integer");
+            }
+        }
+        if(in_array($this->ONLY_NEGATIVE, $flags)) {
+            if(!$this->FUNCTION_VALIDATE_NEGATIVE_INTEGER($var)) {
+                // return INVALID_DATA if not negative number
+                return $this->INVALID_DATA("Integer");
+            }
         }
 
         // return null if no valid integer
@@ -524,12 +560,29 @@ class Sanitizer {
         // error prevention: if flags isn't array then put the flag or NULL into an array
         if(!is_array($flags)) { $flags = array($flags); }
 
+
         // sanitize variable
         $var = filter_var($var, FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION);
 
-         // if NO_VALIDATION flag present then return without validation
-         if(in_array($this->NO_VALIDATION, $flags)) {
-            return$this->RETURN_IF_NOT_EMPTY((float) $var);
+
+        /**
+         * Flags
+         */
+        if(in_array($this->NO_VALIDATION, $flags)) {
+            // return without validation
+            return $this->RETURN_IF_NOT_EMPTY((integer) $var);
+        }
+        if(in_array($this->ONLY_POSITIVE, $flags)) {
+            if(!$this->FUNCTION_VALIDATE_POSITIVE_INTEGER($var)) {
+                // return INVALID_DATA if not positive number
+                return $this->INVALID_DATA("Integer");
+            }
+        }
+        if(in_array($this->ONLY_NEGATIVE, $flags)) {
+            if(!$this->FUNCTION_VALIDATE_NEGATIVE_INTEGER($var)) {
+                // return INVALID_DATA if not negative number
+                return $this->INVALID_DATA("Integer");
+            }
         }
 
         // return null if no valid integer
@@ -855,6 +908,13 @@ class Sanitizer {
     }
     public function FUNCTION_VALIDATE_INTEGER_STRICT($var) {
         return (is_numeric($var) && !is_float($var) && !is_double($var));
+    }
+
+    public function FUNCTION_VALIDATE_POSITIVE_INTEGER($var) {
+        return is_numeric($var) && $var >= 0;
+    }
+    public function FUNCTION_VALIDATE_NEGATIVE_INTEGER($var) {
+        return is_numeric($var) && $var < 0;
     }
 
     public function FUNCTION_VALIDATE_DOUBLE($var) {
