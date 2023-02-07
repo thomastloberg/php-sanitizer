@@ -5,7 +5,7 @@
  *                 PHP Sanitizer
  * 
  * 
- * @version 1.1.2
+ * @version 1.1.3
  * @author Thomas Tufta Løberg
  * @link https://github.com/thomastloberg/php-sanitizer
  * @license https://github.com/thomastloberg/php-sanitizer/LICENSE
@@ -330,12 +330,21 @@ class Sanitizer {
                         }
                     }
                     else {
-                        // no existing key
+                        // no existing key / empty data
 
                         if(is_callable($filter_argument)) {
                             // can't filter empty data
                             $return_array[$key] = $this->INVALID_DATA();
-                        } else {
+                        }
+                        elseif(is_object($filter_argument)) {
+                            // can't filter empty data
+                            $return_array[$key] = $this->INVALID_DATA("Object");
+                        }
+                        elseif(is_array($filter_argument)) {
+                            // can't filter empty data
+                            $return_array[$key] = $this->INVALID_DATA("Array");
+                        }
+                        else {
                             // set key to set value
                             $return_array[$key] = $filter_argument;
                         }
