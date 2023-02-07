@@ -3,16 +3,18 @@ Powerfull PHP Sanitizer for any variable.
   
 If you want to trust the data and make sure an object or array have the keys you need without manually checking each one.  
 After sanitizing variable it will get passed through a validation proces and return INVALID_DATA() if no data / invalid INVALID_DATA Default answer: null.  
+
 <br>
 <br>
-<br>
+
 ## How to  
 1. Require once the class `require_once "/parent-folder/sanitize.php";`.  
 2. Initialize the class like so `$Sanitizer = new \tloberg\Sanitizer();`.  
 3. See examples for how to use the sanitizer [here](https://github.com/thomastloberg/php-sanitizer/blob/master/example.php).  
+
 <br>
 <br>
-<br>
+
 ## Supported formats  
 1. **Raw**  
   No sanitize  
@@ -64,9 +66,10 @@ After sanitizing variable it will get passed through a validation proces and ret
   
 17. **Custom**  
   Create your own filter
+
 <br>
 <br>
-<br>
+
 ## Validation formats  
 1. **Integer**  
   All numbers (double, float, integer) accepted  
