@@ -11,6 +11,11 @@ INVALID_DATA() if no data / invalid
 INVALID_DATA Default answer: null  
   
   
+# How to  
+1. Require once the class `require_once "/parent-folder/sanitize.php";`.  
+2. Initialize the class like so `$Sanitizer = new \tloberg\Sanitizer();`.  
+3. See examples for how to use the sanitizer [here](https://github.com/thomastloberg/php-sanitizer/blob/master/example.php).  
+  
   
 # Supported formats  
 1. **Raw**  
