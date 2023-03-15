@@ -5,7 +5,7 @@
  *                 PHP Sanitizer
  * 
  * 
- * @version 1.1.4
+ * @version 1.1.5
  * @author Thomas Tufta Løberg
  * @link https://github.com/thomastloberg/php-sanitizer
  * @license https://github.com/thomastloberg/php-sanitizer/LICENSE
@@ -128,8 +128,13 @@ class Sanitizer {
 
         // look for JSON data and decode if found
         if(in_array($this->EXPECT_JSON, $flags)) {
+            // if json then decode
             if($this->FUNCTION_VALIDATE_JSON($var)) {
                 $var = json_decode($var);
+            }
+            // if formdata added slashes -> remove and decode
+            elseif($this->FUNCTION_VALIDATE_JSON(stripslashes($var))) {
+                $var = json_decode(stripslashes($var));
             }
         }
 
@@ -170,8 +175,13 @@ class Sanitizer {
 
                     // look for JSON data and decode if found
                     if(in_array($this->EXPECT_JSON, $flags)) {
+                        // if json then decode
                         if($this->FUNCTION_VALIDATE_JSON($value)) {
                             $value = json_decode($value);
+                        }
+                        // if formdata added slashes -> remove and decode
+                        elseif($this->FUNCTION_VALIDATE_JSON(stripslashes($value))) {
+                            $value = json_decode(stripslashes($value));
                         }
                     }
 
@@ -241,8 +251,13 @@ class Sanitizer {
 
                         // look for JSON data and decode if found
                         if(in_array($this->EXPECT_JSON, $flags)) {
+                            // if json then decode
                             if($this->FUNCTION_VALIDATE_JSON($value)) {
                                 $value = json_decode($value);
+                            }
+                            // if formdata added slashes -> remove and decode
+                            elseif($this->FUNCTION_VALIDATE_JSON(stripslashes($value))) {
+                                $value = json_decode(stripslashes($value));
                             }
                         }
 
@@ -302,8 +317,17 @@ class Sanitizer {
 
                         // look for JSON data and decode if found
                         if(in_array($this->EXPECT_JSON, $flags)) {
+                            // if json then decode
                             if($this->FUNCTION_VALIDATE_JSON($arr[$key])) {
                                 $arr[$key] = json_decode($arr[$key]);
+
+                                if(is_object($arr[$key])) {
+                                    $arr[$key] = (array) $arr[$key];
+                                }
+                            }
+                            // if formdata added slashes -> remove and decode
+                            elseif($this->FUNCTION_VALIDATE_JSON(stripslashes($arr[$key]))) {
+                                $arr[$key] = json_decode(stripslashes($arr[$key]));
 
                                 if(is_object($arr[$key])) {
                                     $arr[$key] = (array) $arr[$key];
@@ -964,7 +988,7 @@ class Sanitizer {
         // array or object
         if(!preg_match("/^({|\[).+(\]|})$/", $var)) return false;
 
-        // JSON checker
+        // if JSON return true
         return !preg_match('/[^,:{}\\[\\]0-9.\\-+Eaeflnr-u \\n\\r\    ]/', preg_replace('/"(\\.|[^"\\\\])*"/', '', $var));
     }
 }
