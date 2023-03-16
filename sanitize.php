@@ -5,7 +5,7 @@
  *                 PHP Sanitizer
  * 
  * 
- * @version 1.1.5
+ * @version 1.1.6
  * @author Thomas Tufta Løberg
  * @link https://github.com/thomastloberg/php-sanitizer
  * @license https://github.com/thomastloberg/php-sanitizer/LICENSE
@@ -133,7 +133,7 @@ class Sanitizer {
                 $var = json_decode($var);
             }
             // if formdata added slashes -> remove and decode
-            elseif($this->FUNCTION_VALIDATE_JSON(stripslashes($var))) {
+            elseif(is_string($var) && $this->FUNCTION_VALIDATE_JSON(stripslashes($var))) {
                 $var = json_decode(stripslashes($var));
             }
         }
@@ -180,7 +180,7 @@ class Sanitizer {
                             $value = json_decode($value);
                         }
                         // if formdata added slashes -> remove and decode
-                        elseif($this->FUNCTION_VALIDATE_JSON(stripslashes($value))) {
+                        elseif(is_string($value) && $this->FUNCTION_VALIDATE_JSON(stripslashes($value))) {
                             $value = json_decode(stripslashes($value));
                         }
                     }
@@ -256,7 +256,7 @@ class Sanitizer {
                                 $value = json_decode($value);
                             }
                             // if formdata added slashes -> remove and decode
-                            elseif($this->FUNCTION_VALIDATE_JSON(stripslashes($value))) {
+                            elseif(is_string($value) && $this->FUNCTION_VALIDATE_JSON(stripslashes($value))) {
                                 $value = json_decode(stripslashes($value));
                             }
                         }
@@ -326,7 +326,7 @@ class Sanitizer {
                                 }
                             }
                             // if formdata added slashes -> remove and decode
-                            elseif($this->FUNCTION_VALIDATE_JSON(stripslashes($arr[$key]))) {
+                            elseif(is_string($arr[$key]) && $this->FUNCTION_VALIDATE_JSON(stripslashes($arr[$key]))) {
                                 $arr[$key] = json_decode(stripslashes($arr[$key]));
 
                                 if(is_object($arr[$key])) {
