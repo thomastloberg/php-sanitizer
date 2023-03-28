@@ -5,7 +5,7 @@
  *                 PHP Sanitizer
  * 
  * 
- * @version 1.1.6
+ * @version 1.1.7
  * @author Thomas Tufta Løberg
  * @link https://github.com/thomastloberg/php-sanitizer
  * @license https://github.com/thomastloberg/php-sanitizer/LICENSE
@@ -416,6 +416,16 @@ class Sanitizer {
 
         return $var;
     }
+    public function REPLACE_ACCENTS($str) {
+        // Remove Accent characters like: á => a
+
+        // Credits: Darryl Snow
+        // https://gist.github.com/darryl-snow/3817411
+
+        $str = htmlentities($str, ENT_COMPAT, "UTF-8");
+        $str = preg_replace('/&([a-zA-Z])(uml|acute|grave|circ|tilde);/', '$1', $str);
+        return html_entity_decode($str);
+    }
 
 
     /**
@@ -685,6 +695,9 @@ class Sanitizer {
             $regex .= "\<\>";
         }
 
+        // Remove Accent characters
+        $var = $this->REPLACE_ACCENTS($var);
+
         // Remove all chars not in regex match
         $var = preg_replace("/[^{$regex}]/", "", $var);
 
@@ -715,6 +728,9 @@ class Sanitizer {
         $var = trim($var);
         $var = strip_tags($var);
 
+        // Remove Accent characters
+        $var = $this->REPLACE_ACCENTS($var);
+
         $var = preg_replace("/[^{$regex}]/", "", $var);
 
         return $this->RETURN_IF_NOT_EMPTY((string) $var, "Filename");
@@ -743,6 +759,10 @@ class Sanitizer {
         // non optional function which removes unwanted chars
         $var = trim($var);
         $var = strip_tags($var);
+
+        // Remove Accent characters
+        $var = $this->REPLACE_ACCENTS($var);
+
         $var = preg_replace("/[^{$regex}]/", "", $var);
 
         return $this->RETURN_IF_NOT_EMPTY((string) $var, "Filepath");
@@ -759,6 +779,9 @@ class Sanitizer {
 
         // error prevention: if flags isn't array then put the flag or NULL into an array
         if(!is_array($flags)) { $flags = array($flags); }
+
+        // Remove Accent characters
+        $var = $this->REPLACE_ACCENTS($var);
 
         // sanitize url
         $var = filter_var($var, FILTER_SANITIZE_URL);
@@ -787,6 +810,9 @@ class Sanitizer {
 
         // error prevention: if flags isn't array then put the flag or NULL into an array
         if(!is_array($flags)) { $flags = array($flags); }
+
+        // Remove Accent characters
+        $var = $this->REPLACE_ACCENTS($var);
 
         // sanitize email
         $var = filter_var($var, FILTER_SANITIZE_EMAIL);
@@ -868,9 +894,11 @@ class Sanitizer {
         $var = trim($var);
         $var = strip_tags($var);
 
+        // Remove Accent characters
+        $var = $this->REPLACE_ACCENTS($var);
+
         // Default regex / allowed chars
         $regex = "0-9\-\.\\\\\/:";
-
         $var = preg_replace("/[^{$regex}]/", "", $var);
         
 
@@ -903,9 +931,11 @@ class Sanitizer {
         $var = trim($var);
         $var = strip_tags($var);
 
+        // Remove Accent characters
+        $var = $this->REPLACE_ACCENTS($var);
+
         // Default regex / allowed chars
         $regex = "0-9\-\.\\\\\/:\s";
-
         $var = preg_replace("/[^{$regex}]/", "", $var);
         
 
