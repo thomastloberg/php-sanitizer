@@ -5,7 +5,7 @@
  *                 PHP Sanitizer
  * 
  * 
- * @version 1.1.7
+ * @version 1.1.8
  * @author Thomas Tufta Løberg
  * @link https://github.com/thomastloberg/php-sanitizer
  * @license https://github.com/thomastloberg/php-sanitizer/LICENSE
@@ -660,7 +660,7 @@ class Sanitizer {
         // 0-9          // Numbers
         // a-zA-Z       // English alphabet
         // æøåÆØÅ       // Norwegian letters
-        // ,\\.\-\/=$
+        // ,\\.\-\/=$§
 		// |\*\+\[\]!\?
 		// _:;@#%&\(\)  // Symbols 3/3
         // \n\r         // New line on Linux & Windows
@@ -669,7 +669,7 @@ class Sanitizer {
 
 
         // Default regex / allowed chars
-        $regex = "0-9a-zA-Z,\\.\-\/=$|\*\+\[\]!\?_:;@#%&\(\) \n\r\t";
+        $regex = "0-9a-zA-Z,\\.\-\/=$\§|\*\+\[\]!\?_:;@#%&\(\) \n\r\t";
 
 
         // if DENY_NORWEGIAN flag not present then add flag
