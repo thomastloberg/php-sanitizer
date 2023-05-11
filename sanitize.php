@@ -5,7 +5,7 @@
  *                 PHP Sanitizer
  * 
  * 
- * @version 1.1.8
+ * @version 1.1.9
  * @author Thomas Tufta Løberg
  * @link https://github.com/thomastloberg/php-sanitizer
  * @license https://github.com/thomastloberg/php-sanitizer/LICENSE
@@ -402,10 +402,10 @@ class Sanitizer {
     /**
      * Helper Functions
      */
-    public function NOT_SANITIZABLE($var) {
+    public function NOT_SANITIZABLE ($var) {
         return (empty($var) || is_callable($var) || is_object($var) || is_array($var));
     }
-    public function RETURN_IF_NOT_EMPTY($var, $datatype=null) {
+    public function RETURN_IF_NOT_EMPTY ($var, $datatype=null) {
         if(empty($var)) {
             if(empty($datatype)) {
                 return $this->INVALID_DATA(gettype($var));
@@ -416,7 +416,7 @@ class Sanitizer {
 
         return $var;
     }
-    public function REPLACE_ACCENTS($str) {
+    public function REPLACE_ACCENTS ($str) {
         // Remove Accent characters like: á => a
 
         // Credits: Darryl Snow
@@ -425,6 +425,10 @@ class Sanitizer {
         $str = htmlentities($str, ENT_COMPAT, "UTF-8");
         $str = preg_replace('/&([a-zA-Z])(uml|acute|grave|circ|tilde);/', '$1', $str);
         return html_entity_decode($str);
+    }
+    public function REPLACE_NONPRINTABLE ($str) {
+        // ASCII & UTF-8 compatible
+        return preg_replace('/[\x00-\x1F\x7F\xA0]/u', '', $str);
     }
 
 
@@ -657,19 +661,19 @@ class Sanitizer {
 
         // Remove everything except these characters:
         
-        // 0-9          // Numbers
-        // a-zA-Z       // English alphabet
-        // æøåÆØÅ       // Norwegian letters
+        // 0-9           // Numbers
+        // a-zA-Z        // English alphabet
+        // æøåÆØÅ        // Norwegian letters
         // ,\\.\-\/=$§
 		// |\*\+\[\]!\?
-		// _:;@#%&\(\)  // Symbols 3/3
-        // \n\r         // New line on Linux & Windows
-        //  \t          // Spaces + Tabs
-        // \"\'         // Single & Double quotes - only if ALLOW_QUOTES flag present
+		// _:;@#%&\(\)\s // Symbols 3/3
+        // \n\r          // New line on Linux & Windows
+        //  \t           // Spaces + Tabs
+        // \"\'          // Single & Double quotes - only if ALLOW_QUOTES flag present
 
 
         // Default regex / allowed chars
-        $regex = "0-9a-zA-Z,\\.\-\/=$\§|\*\+\[\]!\?_:;@#%&\(\) \n\r\t";
+        $regex = "0-9a-zA-Z,\\.\-\/=$\§|\*\+\[\]!\?_:;@#%&\(\)\s\n\r\t";
 
 
         // if DENY_NORWEGIAN flag not present then add flag
@@ -697,6 +701,9 @@ class Sanitizer {
 
         // Remove Accent characters
         $var = $this->REPLACE_ACCENTS($var);
+
+        // Remove Non-printable characters
+        $var = $this->REPLACE_NONPRINTABLE($var);
 
         // Remove all chars not in regex match
         $var = preg_replace("/[^{$regex}]/", "", $var);
@@ -731,6 +738,9 @@ class Sanitizer {
         // Remove Accent characters
         $var = $this->REPLACE_ACCENTS($var);
 
+        // Remove Non-printable characters
+        $var = $this->REPLACE_NONPRINTABLE($var);
+
         $var = preg_replace("/[^{$regex}]/", "", $var);
 
         return $this->RETURN_IF_NOT_EMPTY((string) $var, "Filename");
@@ -763,6 +773,9 @@ class Sanitizer {
         // Remove Accent characters
         $var = $this->REPLACE_ACCENTS($var);
 
+        // Remove Non-printable characters
+        $var = $this->REPLACE_NONPRINTABLE($var);
+
         $var = preg_replace("/[^{$regex}]/", "", $var);
 
         return $this->RETURN_IF_NOT_EMPTY((string) $var, "Filepath");
@@ -782,6 +795,9 @@ class Sanitizer {
 
         // Remove Accent characters
         $var = $this->REPLACE_ACCENTS($var);
+
+        // Remove Non-printable characters
+        $var = $this->REPLACE_NONPRINTABLE($var);
 
         // sanitize url
         $var = filter_var($var, FILTER_SANITIZE_URL);
@@ -813,6 +829,9 @@ class Sanitizer {
 
         // Remove Accent characters
         $var = $this->REPLACE_ACCENTS($var);
+
+        // Remove Non-printable characters
+        $var = $this->REPLACE_NONPRINTABLE($var);
 
         // sanitize email
         $var = filter_var($var, FILTER_SANITIZE_EMAIL);
@@ -897,6 +916,9 @@ class Sanitizer {
         // Remove Accent characters
         $var = $this->REPLACE_ACCENTS($var);
 
+        // Remove Non-printable characters
+        $var = $this->REPLACE_NONPRINTABLE($var);
+
         // Default regex / allowed chars
         $regex = "0-9\-\.\\\\\/:";
         $var = preg_replace("/[^{$regex}]/", "", $var);
@@ -933,6 +955,9 @@ class Sanitizer {
 
         // Remove Accent characters
         $var = $this->REPLACE_ACCENTS($var);
+
+        // Remove Non-printable characters
+        $var = $this->REPLACE_NONPRINTABLE($var);
 
         // Default regex / allowed chars
         $regex = "0-9\-\.\\\\\/:\s";
