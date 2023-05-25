@@ -5,7 +5,7 @@
  *                 PHP Sanitizer
  * 
  * 
- * @version 1.2.0
+ * @version 1.2.1
  * @author Thomas Tufta Løberg
  * @link https://github.com/thomastloberg/php-sanitizer
  * @license https://github.com/thomastloberg/php-sanitizer/LICENSE
@@ -27,9 +27,9 @@
  *      Raw             # No sanitize
  *      Array           # Filter Array = Output Array. (optional flags: DEEP_ARRAY, EXPECT_JSON)
  *      Object          # Filter Object = Output Object. (optional flags: DEEP_ARRAY, EXPECT_JSON)
- *      Double          # Sanitize Double    (optional flags: NO_VALIDATION, STRICT)
- *      Float           # Sanitize Float     (optional flags: NO_VALIDATION, STRICT)
- *      Integer         # Sanitize Integer   (optional flags: NO_VALIDATION, STRICT)
+ *      Double          # Sanitize Double    (optional flags: NO_VALIDATION, STRICT, ONLY_POSITIVE, ONLY_NEGATIVE)
+ *      Float           # Sanitize Float     (optional flags: NO_VALIDATION, STRICT, ONLY_POSITIVE, ONLY_NEGATIVE)
+ *      Integer         # Sanitize Integer   (optional flags: NO_VALIDATION, STRICT, ONLY_POSITIVE, ONLY_NEGATIVE)
  *      Boolean         # Sanitize Boolean
  *      String          # Sanitize String    (optional flags: DENY_NORWEGIAN, NO_TRIM, NO_HTMLSTRIP, ALLOW_QUOTES)
  *      Filename        # Sanitize Filename  (optional flags: DENY_NORWEGIAN)
@@ -548,7 +548,7 @@ class Sanitizer {
          */
         if (in_array($this->NO_VALIDATION, $flags)) {
             // return without validation
-            return $this->RETURN_IF_NOT_EMPTY((integer) $var);
+            return $this->RETURN_IF_NOT_EMPTY((double) $var);
         }
         if (in_array($this->ONLY_POSITIVE, $flags)) {
             if (!$this->FUNCTION_VALIDATE_POSITIVE_INTEGER($var)) {
@@ -608,7 +608,7 @@ class Sanitizer {
          */
         if (in_array($this->NO_VALIDATION, $flags)) {
             // return without validation
-            return $this->RETURN_IF_NOT_EMPTY((integer) $var);
+            return $this->RETURN_IF_NOT_EMPTY((float) $var);
         }
         if (in_array($this->ONLY_POSITIVE, $flags)) {
             if (!$this->FUNCTION_VALIDATE_POSITIVE_INTEGER($var)) {
