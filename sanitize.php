@@ -5,7 +5,7 @@
  *                 PHP Sanitizer
  * 
  * 
- * @version 1.2.1
+ * @version 1.2.5
  * @author Thomas Tufta Løberg
  * @link https://github.com/thomastloberg/php-sanitizer
  * @license https://github.com/thomastloberg/php-sanitizer/LICENSE
@@ -19,19 +19,20 @@
  * After sanitizing variable it will get passed
  * through a validation proces and return 
  * INVALID_DATA() if no data / invalid
- * INVALID_DATA Default answer: null
+ * INVALID_DATA Default answer: empty array or null
  * 
  * 
  * 
  * Supported formats:
  *      Raw             # No sanitize
- *      Array           # Filter Array = Output Array. (optional flags: DEEP_ARRAY, EXPECT_JSON)
+ *      Array           # Filter Array  = Output Array.  (optional flags: DEEP_ARRAY, EXPECT_JSON)
  *      Object          # Filter Object = Output Object. (optional flags: DEEP_ARRAY, EXPECT_JSON)
  *      Double          # Sanitize Double    (optional flags: NO_VALIDATION, STRICT, ONLY_POSITIVE, ONLY_NEGATIVE)
  *      Float           # Sanitize Float     (optional flags: NO_VALIDATION, STRICT, ONLY_POSITIVE, ONLY_NEGATIVE)
  *      Integer         # Sanitize Integer   (optional flags: NO_VALIDATION, STRICT, ONLY_POSITIVE, ONLY_NEGATIVE)
  *      Boolean         # Sanitize Boolean
  *      String          # Sanitize String    (optional flags: DENY_NORWEGIAN, NO_TRIM, NO_HTMLSTRIP, ALLOW_QUOTES)
+ *      String Custom   # Sanitize String w/ Custom Allowed Chars
  *      Filename        # Sanitize Filename  (optional flags: DENY_NORWEGIAN)
  *      Filepath        # Sanitize Filepath  (optional flags: DENY_NORWEGIAN)
  *      URL             # Sanitize URL       (optional flags: NO_VALIDATION)
@@ -40,6 +41,7 @@
  *      Timestamp       # Sanitize timestamp (optional flags: NO_VALIDATION)
  *      Date            # Sanitize Date      (optional flags: NO_VALIDATION)
  *      DateTime        # Sanitize DateTime  (optional flags: NO_VALIDATION)
+ *      Custom String   # Sanitize String w/ Only Allowed Chars (optional flags: DENY_NORWEGIAN, NO_TRIM, NO_HTMLSTRIP, ALLOW_QUOTES)
  *      Custom
  * 
  * 
@@ -57,6 +59,11 @@
  *      Date
  *      Datetime
  *      JSON
+ * 
+ * 
+ * Check Required:
+ *      CHECK_REQUIRED_ARRAY()  # Check if required array keys exists and is not empty
+ * 
  * 
  */
 
@@ -84,7 +91,10 @@ class Sanitizer {
         /**
          * Default: return null if invalid data (no data or wrong type)
          */
-        return null; // Comment this if you want more detailed response on INVALID DATA
+
+        // DEFAULT_EMPTY_VALUE() is REQUIRED to give $this->CHECK_REQUIRED() the correct datatype
+        // Comment DEFAULT_EMPTY_VALUE() if you want more detailed response on INVALID DATA
+        return $this->DEFAULT_EMPTY_VALUE($expected_datatype);
 
 
         /**
@@ -95,24 +105,34 @@ class Sanitizer {
         if (empty($expected_datatype)) {
 
             if (empty($received_datetype)) {
-                $return_text = "No data";
-            }
-            else {
-                $return_text = "Invalid (" . ucwords(strtolower($received_datetype)) . ")";
+                return "No data";
+            } else {
+                return "Invalid (" . ucwords(strtolower($received_datetype)) . ")";
             }
 
-        }
-        else {
+        } else {
 
             $return_text = "Invalid. Expected: " .$expected_datatype;
 
-            if (!empty($received_datetype)) {
+            if (!empty($received_datetype))
                 $return_text .= " (" . ucwords(strtolower($received_datetype)) . ")";
-            }
 
+            return $return_text;
         }
 
-        return $return_text;
+    }
+    public function DEFAULT_EMPTY_VALUE     ($datatype=null) {
+        /**
+         * If variable is empty then return default value
+         */
+
+        if($datatype != null && strtolower($datatype) == "array") {
+            return array();
+        // } else if($datatype != null && strtolower($datatype) == "boolean") {
+        //     return false;
+        } else {
+            return null;
+        }
     }
   
 
@@ -128,268 +148,173 @@ class Sanitizer {
 
         // look for JSON data and decode if found
         if (in_array($this->EXPECT_JSON, $flags)) {
-            // if json then decode
             if ($this->FUNCTION_VALIDATE_JSON($var)) {
+                // if json then decode
                 $var = json_decode($var);
-            }
-            // if formdata added slashes -> remove and decode
-            else if (is_string($var) && $this->FUNCTION_VALIDATE_JSON(stripslashes($var))) {
+            } else if (is_string($var) && $this->FUNCTION_VALIDATE_JSON(stripslashes($var))) {
+                // if formdata added slashes -> remove and decode
                 $var = json_decode(stripslashes($var));
             }
         }
 
-        if (is_object($var)) {
-            $var = (array) $var;
-        }
+        if (is_object($var)) $var = (array) $var;
         
-        return $filter($var);
+        return count($flags) > 0 ? $filter($var, $flags) : $filter($var);
     }
+
     public function Sanitize_Array          ($arr, $filter, $flags=null) {
-        //prepair return array based of $filter
         $return_array = array();
 
-        // error prevention: if flags isn't array then put the flag or NULL into an array
-        if (!is_array($flags)) { $flags = array($flags); }
-
         // error prevention: if function passed into input array
-        if (is_callable($arr)) {
-            return $this->INVALID_DATA(null, "Function");
-        }
+        if (is_callable($arr))    return $this->INVALID_DATA(null, "Function");
+        if (is_callable($filter)) $filter = array($filter);
 
-        // make sure we are working with arrays not objects
-        if (is_object($arr)) {
-            $arr = (array) $arr;
-        } else if (is_array($arr)) {
-            // perfect
+        // correct data
+        if (is_object($arr))    $arr    = (array) $arr;
+        if (is_object($filter)) $filter = (array) $filter;
+
+        // error prevention: convert to array if isn't
+        if (!is_array($arr))    $arr    = array($arr);
+        if (!is_array($flags))  $flags = array($flags);
+        if (!is_array($filter)) $filter = array($filter);
+
+
+        if(count($filter) == 1 && empty(array_keys($filter)[0])) {
+
+            // Expected array with one filter
+            return $this->FUNCTION_SANITIZEARRAY_SINGLEFILTER($return_array, $arr, $filter, $flags);
+
         } else {
-            $arr = array($arr);
-        }
 
-
-        if (is_callable($filter)) {
-
-
-            // only one filter provided. Filter all keys with this filter
-            foreach ($arr as $key => $value) {
-                if (isset($value)) {
-
-                    // look for JSON data and decode if found
-                    if (in_array($this->EXPECT_JSON, $flags)) {
-                        // if json then decode
-                        if ($this->FUNCTION_VALIDATE_JSON($value)) {
-                            $value = json_decode($value);
-                        }
-                        // if formdata added slashes -> remove and decode
-                        else if (is_string($value) && $this->FUNCTION_VALIDATE_JSON(stripslashes($value))) {
-                            $value = json_decode(stripslashes($value));
-                        }
-                    }
-
-                    // convert object to array with keys
-                    if (is_object($value)) {
-                        $value = (array) $value;
-                    }
-
-
-                    // if DEEP_ARRAY then sanitize all object properties and array keys with filter
-                    if (in_array($this->DEEP_ARRAY, $flags)) {
-
-                        if (is_object($value)) {
-                            $return_array[$key] = $this->Sanitize_Array((array) $value, $filter, $flags);
-                        }
-                        else if (is_array($value)) {
-                            $return_array[$key] = $this->Sanitize_Array($value, $filter, $flags);
-                        }
-                        else {
-                            $return_array[$key] = $this->Sanitize_Variable($value, $filter, $flags);
-                        }
-
-                    }
-                    else {
-
-                        if (is_object($value) && is_object($filter)) {
-                            $return_array[$key] = $this->Sanitize_Array((array) $value, $filter, $flags);
-                        }
-                        else if (is_array($value) && is_array($filter)) {
-                            $return_array[$key] = $this->Sanitize_Array($value, $filter, $flags);
-                        }
-                        else if (is_object($value)) {
-                            $return_array[$key] = $this->INVALID_DATA(null, "Object");
-                        }
-                        else if (is_array($value)) {
-                            $return_array[$key] = $this->INVALID_DATA(null, "Array");
-                        }
-                        else {
-                            $return_array[$key] = $this->Sanitize_Variable($value, $filter, $flags);
-                        }
-
-                    }
-                    
-                }
-                else {
-                    // no existing key
-                    $return_array[$key] = $this->INVALID_DATA();
-                }
-            }
-
-            return $return_array;
+            // Expected array with multiple filters
+            return $this->FUNCTION_SANITIZEARRAY_MULTIFILTER($return_array, $arr, $filter, $flags);
 
         }
-
-
-        // if object then change to array for each manipulation
-        if (is_object($filter)) { $filter = (array) $filter; }
-
-
-        if (is_array($filter)) {
-
-            if (count($filter) == 1 && empty(array_keys($filter)[0])) {
-
-                // filter all input array by this one filter
-                foreach ($arr as $key => $value) {
-                    if (isset($value)) {
-
-                        // look for JSON data and decode if found
-                        if (in_array($this->EXPECT_JSON, $flags)) {
-                            // if json then decode
-                            if ($this->FUNCTION_VALIDATE_JSON($value)) {
-                                $value = json_decode($value);
-                            }
-                            // if formdata added slashes -> remove and decode
-                            else if (is_string($value) && $this->FUNCTION_VALIDATE_JSON(stripslashes($value))) {
-                                $value = json_decode(stripslashes($value));
-                            }
-                        }
-
-                        // convert object to array with keys
-                        if (is_object($value)) {
-                            $value = (array) $value;
-                        }
-
-
-                        // if DEEP_ARRAY then sanitize all object properties and array keys with filter
-                        if (in_array($this->DEEP_ARRAY, $flags)) {
-
-                            if (is_object($value)) {
-                                $return_array[$key] = $this->Sanitize_Array((array) $value, $filter[0], $flags);
-                            }
-                            else if (is_array($value)) {
-                                $return_array[$key] = $this->Sanitize_Array($value, $filter[0], $flags);
-                            }
-                            else {
-                                $return_array[$key] = $this->Sanitize_Variable($value, $filter[0], $flags);
-                            }
-
-                        }
-                        else {
-
-                            if (is_object($value) && is_object($filter[0])) {
-                                $return_array[$key] = $this->Sanitize_Array((array) $value, $filter[0], $flags);
-                            }
-                            else if (is_array($value) && is_array($filter[0])) {
-                                $return_array[$key] = $this->Sanitize_Array($value, $filter[0], $flags);
-                            }
-                            else if (is_object($value)) {
-                                $return_array[$key] = $this->INVALID_DATA(null, "Object");
-                            }
-                            else if (is_array($value)) {
-                                $return_array[$key] = $this->INVALID_DATA(null, "Array");
-                            }
-                            else {
-                                $return_array[$key] = $this->Sanitize_Variable($value, $filter[0], $flags);
-                            }
-
-                        }
-
-                    }
-                    else {
-                        // no existing key
-                        $return_array[$key] = $this->INVALID_DATA();
-                    }
-                }
-
-            }
-            else {
-
-                // filter keys with filters provided
-                foreach ($filter as $key => $filter_argument) {
-                    if (isset($arr[$key])) {
-
-                        // look for JSON data and decode if found
-                        if (in_array($this->EXPECT_JSON, $flags)) {
-                            // if json then decode
-                            if ($this->FUNCTION_VALIDATE_JSON($arr[$key])) {
-                                $arr[$key] = json_decode($arr[$key]);
-
-                                if (is_object($arr[$key])) {
-                                    $arr[$key] = (array) $arr[$key];
-                                }
-                            }
-                            // if formdata added slashes -> remove and decode
-                            else if (is_string($arr[$key]) && $this->FUNCTION_VALIDATE_JSON(stripslashes($arr[$key]))) {
-                                $arr[$key] = json_decode(stripslashes($arr[$key]));
-
-                                if (is_object($arr[$key])) {
-                                    $arr[$key] = (array) $arr[$key];
-                                }
-                            }
-                        }
-
-                        // convert object to array with keys
-                        if (is_object($arr[$key])) {
-                            $arr[$key] = (array) $arr[$key];
-                        }
-
-
-                        if (is_callable($filter_argument)) {
-                            $return_array[$key] = $filter_argument($arr[$key]);
-                        }
-                        else if (is_object($filter_argument)) {
-                            // if $filter_function is a object then change to array
-                            $return_array[$key] = $this->Sanitize_Array($arr[$key], (array) $filter_argument, $flags);
-                        }
-                        else if (is_array($filter_argument)) {
-                            $return_array[$key] = $this->Sanitize_Array($arr[$key], $filter_argument, $flags);
-                        }
-                        else {
-                            $return_array[$key] = $filter_argument;
-                        }
-                    }
-                    else {
-                        // no existing key / empty data
-
-                        if (is_callable($filter_argument)) {
-                            // can't filter empty data
-                            $return_array[$key] = $this->INVALID_DATA();
-                        }
-                        else if (is_object($filter_argument)) {
-                            // can't filter empty data
-                            $return_array[$key] = $this->INVALID_DATA("Object");
-                        }
-                        else if (is_array($filter_argument)) {
-                            // can't filter empty data
-                            $return_array[$key] = $this->INVALID_DATA("Array");
-                        }
-                        else {
-                            // set key to set value
-                            $return_array[$key] = $filter_argument;
-                        }
-                    }
-                }
-
-            }
-
-
-        }
-        else {
-
-            // No filter
-
-        }
-
-
-        return $return_array;
     }
+    public function FUNCTION_SANITIZEARRAY_SINGLEFILTER ($return_array, $arr, $filter, $flags) {
+        // error prevention: convert to array if isn't
+        if (!is_array($flags))  $flags = array($flags);
+        if (!is_array($arr))    return $this->INVALID_DATA("Array", gettype($arr));
+        if (!is_array($filter)) return $this->INVALID_DATA("Array", gettype($filter));
+
+        // foreach $arr
+        foreach ($arr as $arrvalue) {
+            // no value / nothing to validate
+            if (!isset($arrvalue)) {
+                $newValue = $this->INVALID_DATA();
+                if ($newValue !== null) $return_array[] = $newValue;
+                continue;
+            }
+            
+            // look for JSON data and decode if found
+            if (in_array($this->EXPECT_JSON, $flags)) {
+                if ($this->FUNCTION_VALIDATE_JSON($arrvalue)) {
+                    // if json then decode
+                    $arrvalue = json_decode($arrvalue);
+
+                } else if (is_string($arrvalue) && $this->FUNCTION_VALIDATE_JSON(stripslashes($arrvalue))) {
+                    // if formdata added slashes -> remove and decode
+                    $arrvalue = json_decode(stripslashes($arrvalue));
+                }
+            }
+            
+            // error prevention
+            if (is_object($arrvalue)) $arrvalue = (array) $arrvalue;
+
+
+            if (is_array($filter[0])) {
+                $newValue = $this->Sanitize_Array($arrvalue, $filter[0], $flags);
+                if ($newValue !== null) $return_array[] = $newValue;
+                continue;
+            }
+
+            $newValue = $this->Sanitize_Variable($arrvalue, $filter[0], $flags);
+            if ($newValue !== null) $return_array[] = $newValue;
+        }
+
+        // Validate that one or more keys have a value
+        if(count($return_array) > 0) {
+            foreach ($return_array as $returnkey => $returnvalue) {
+                if (is_array($returnvalue) && count($returnvalue) > 0)
+                    return $return_array;
+
+                if ($returnvalue !== null)
+                    return $return_array;
+            }
+        }
+
+        // No value found
+        return $this->INVALID_DATA("Array");
+    }
+    public function FUNCTION_SANITIZEARRAY_MULTIFILTER ($return_array, $arr, $filter, $flags) {
+        // error prevention: convert to array if isn't
+        if (!is_array($flags))  $flags = array($flags);
+        if (!is_array($arr))    return $this->INVALID_DATA("Array", gettype($arr));
+        if (!is_array($filter)) return $this->INVALID_DATA("Array", gettype($filter));
+
+        // Each key spesific
+        foreach($filter as $filterkey => $filter_function_or_array) {
+            // if key exist in array
+            if(!isset($arr[$filterkey])) {
+                $newValue = $this->INVALID_DATA();
+                $return_array[$filterkey] = $newValue;
+                continue;
+            }
+            
+            // look for JSON data and decode if found
+            if (in_array($this->EXPECT_JSON, $flags)) {
+                if ($this->FUNCTION_VALIDATE_JSON($arr[$filterkey])) {
+                    // if json then decode
+                    $arr[$filterkey] = json_decode($arr[$filterkey]);
+
+                } else if (is_string($arr[$filterkey]) && $this->FUNCTION_VALIDATE_JSON(stripslashes($arr[$filterkey]))) {
+                    // if formdata added slashes -> remove and decode
+                    $arr[$filterkey] = json_decode(stripslashes($arr[$filterkey]));
+                }
+            }
+
+            // if object
+            if (is_object($arr[$filterkey])) $arr[$filterkey] = (array) $arr[$filterkey];
+
+            // if function
+            if (is_callable($filter_function_or_array)) {
+                $return_array[$filterkey] = $this->Sanitize_Variable($arr[$filterkey], $filter_function_or_array, $flags);
+                continue;
+            }
+
+            // if object
+            if (is_object($filter_function_or_array)) $filter_function_or_array = (array) $filter_function_or_array;
+
+            // if array
+            if (is_array($filter_function_or_array)) {
+                // if array with one filter
+                if(count($filter_function_or_array) == 1 && empty(array_keys($filter_function_or_array)[0])) {
+                    $return_array[$filterkey] = $this->FUNCTION_SANITIZEARRAY_SINGLEFILTER(array(), $arr[$filterkey], $filter_function_or_array, $flags);
+                    continue;
+                }
+
+                // if array with multiple filters
+                $return_array[$filterkey] = $this->Sanitize_Array($arr[$filterkey], $filter_function_or_array, $flags);
+                continue;
+            }
+        }
+
+
+        // Validate that one or more keys have a value
+        if(count($return_array) > 0) {
+            foreach ($return_array as $returnkey => $returnvalue) {
+                if (is_array($returnvalue) && count($returnvalue) > 0)
+                    return $return_array;
+
+                if ($returnvalue !== null)
+                    return $return_array;
+            }
+        }
+
+        // No value found
+        return $this->INVALID_DATA("Array");
+    }
+    
     public function Sanitize_Object         ($obj, $filter, $flags=null) {
         if (is_object($obj)) { $obj = (array) $obj; }
         if (is_object($filter)) { $filter = (array) $filter; }
@@ -403,7 +328,7 @@ class Sanitizer {
      * Helper Functions
      */
     public function NOT_SANITIZABLE         ($var) {
-        return (empty($var) || is_callable($var) || is_object($var) || is_array($var));
+        return ($var === '' || is_callable($var) || is_object($var) || is_array($var));
     }
     public function RETURN_IF_NOT_EMPTY     ($var, $datatype=null) {
         if (empty($var)) {
@@ -430,31 +355,74 @@ class Sanitizer {
         // ASCII & UTF-8 compatible
         return preg_replace('/[\x00-\x1F\x7F\xA0]/u', '', $str);
     }
+    public function RETURN_ONLY_ALLOWED_CHARS (string $var, string $allowedChars): string {
+        if(strlen($var) == 0) return "";
+
+        $output = "";
+
+        $allowedChars = str_replace("0-9", "0123456789", $allowedChars);
+        $allowedChars = str_replace("a-z", "abcdefghijklmnopqrstuvwxyz", $allowedChars);
+        $allowedChars = str_replace("A-Z", "ABCDEFGHIJKLMNOPQRSTUVWXYZ", $allowedChars);
+        $allowedChars = str_replace("a-Z", "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ", $allowedChars);
+
+        $accepted_chars_arr = str_split($allowedChars);
+
+        foreach(str_split($var) as $char){
+            if(in_array($char, $accepted_chars_arr)) $output .= $char;
+        }
+
+        return $output;
+    }
+    public function RETURN_ALL_EXCEPT_CHARS (string $var, string $deniedChars): string {
+        if(strlen($var) == 0) return "";
+
+        $output = "";
+
+        $deniedChars = str_replace("0-9", "0123456789", $deniedChars);
+        $deniedChars = str_replace("a-z", "abcdefghijklmnopqrstuvwxyz", $deniedChars);
+        $deniedChars = str_replace("A-Z", "ABCDEFGHIJKLMNOPQRSTUVWXYZ", $deniedChars);
+        $deniedChars = str_replace("a-Z", "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ", $deniedChars);
+
+        $denied_chars_arr = str_split($deniedChars);
+
+        foreach(str_split($var) as $char){
+            if(!in_array($char, $denied_chars_arr)) $output .= $char;
+        }
+
+        return $output;
+    }
 
 
     /**
      * Filters
      */
-    public function FILTER_RAW              () {
-        return function($var) { return $this->FUNCTION_FILTER_RAW($var); };
+    public function FILTER_RAW              ($flags=null) {
+        return function($var) use ($flags) { 
+            return $this->FUNCTION_FILTER_RAW($var, $flags);
+        };
     }
-    public function FUNCTION_FILTER_RAW     ($var) {
+    public function FUNCTION_FILTER_RAW     ($var, $flags=null) {
+        // error prevention: turn flags into array
+        if (!is_array($flags)) { $flags = array($flags); }
+
         return $var;
     }
 
-    public function FILTER_BOOLEAN          () {
-        return function($var) {
-            return $this->FUNCTION_FILTER_BOOLEAN($var);
+    public function FILTER_BOOLEAN          ($flags=null) {
+        return function($var) use ($flags) {
+            return $this->FUNCTION_FILTER_BOOLEAN($var, $flags);
         };
     }
-    public function FUNCTION_FILTER_BOOLEAN ($var) {
+    public function FUNCTION_FILTER_BOOLEAN ($var, $flags=null) {
         // error prevention: if $var is string then return null
         if ($this->NOT_SANITIZABLE($var)) { return $this->INVALID_DATA("Boolean"); }
 
-        // quick check with simple object convertion if true
-        if ($var == TRUE) {
-            return true;
-        }
+        // error prevention: turn flags into array
+        if (!is_array($flags)) { $flags = array($flags); }
+
+        // quick check with simple convertion if true or false
+        if ($var === TRUE) return true;
+        if ($var === 0 || $var === '0') return false;
 
         // sanitize boolean. Returns: True / False / null
         $var = filter_var($var, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
@@ -480,50 +448,41 @@ class Sanitizer {
 
 
         // sanitize variable
-        $var = filter_var($var, FILTER_SANITIZE_NUMBER_INT);
+        $var = $this->RETURN_ONLY_ALLOWED_CHARS($var, "0-9-");
 
 
         /**
          * Flags
          */
-        if (in_array($this->NO_VALIDATION, $flags)) {
-            // return without validation
+
+        // return without validation
+        if (in_array($this->NO_VALIDATION, $flags))
             return $this->RETURN_IF_NOT_EMPTY((integer) $var);
-        }
-        if (in_array($this->ONLY_POSITIVE, $flags)) {
-            if (!$this->FUNCTION_VALIDATE_POSITIVE_INTEGER($var)) {
-                // return INVALID_DATA if not positive number
-                return $this->INVALID_DATA("Integer");
-            }
-        }
-        if (in_array($this->ONLY_NEGATIVE, $flags)) {
-            if (!$this->FUNCTION_VALIDATE_NEGATIVE_INTEGER($var)) {
-                // return INVALID_DATA if not negative number
-                return $this->INVALID_DATA("Integer");
-            }
-        }
+
+        // return INVALID_DATA if not positive number
+        if (in_array($this->ONLY_POSITIVE, $flags))
+            if (!$this->FUNCTION_VALIDATE_POSITIVE_INTEGER($var)) return $this->INVALID_DATA("Integer");
+
+        // return INVALID_DATA if not negative number
+        if (in_array($this->ONLY_NEGATIVE, $flags))
+            if (!$this->FUNCTION_VALIDATE_NEGATIVE_INTEGER($var)) return $this->INVALID_DATA("Integer");
 
         // return null if no valid integer
         if (in_array($this->STRICT, $flags)) {
 
-            // Strict validation. Float / Double => Not valid
-            if ($this->FUNCTION_VALIDATE_INTEGER_STRICT($var)) {
-                return $this->RETURN_IF_NOT_EMPTY((integer) $var);
-            } else {
-                return $this->INVALID_DATA("Integer");
-            }
+            // Valid
+            if ($this->FUNCTION_VALIDATE_INTEGER_STRICT($var)) return $this->RETURN_IF_NOT_EMPTY((integer) $var);
+            
+            // Invalid
+            return $this->INVALID_DATA("Integer");
 
         }
-        else {
 
-            // Not strict: Float / Double / Integer => Valid
-            if ($this->FUNCTION_VALIDATE_INTEGER($var)) {
-                return $this->RETURN_IF_NOT_EMPTY((integer) $var);
-            } else {
-                return $this->INVALID_DATA("Integer");
-            }
+        // Valid
+        if ($this->FUNCTION_VALIDATE_INTEGER($var)) return $this->RETURN_IF_NOT_EMPTY((integer) $var);
 
-        }
+        // Invalid
+        return $this->INVALID_DATA("Integer");
     }
 
     public function FILTER_DOUBLE           ($flags=null) {
@@ -540,50 +499,41 @@ class Sanitizer {
 
 
         // sanitize variable
-        $var = filter_var($var, FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION);
+        $var = $this->RETURN_ONLY_ALLOWED_CHARS($var, "0-9.,-");
 
 
         /**
          * Flags
          */
-        if (in_array($this->NO_VALIDATION, $flags)) {
-            // return without validation
+
+        // return without validation
+        if (in_array($this->NO_VALIDATION, $flags))
             return $this->RETURN_IF_NOT_EMPTY((double) $var);
-        }
-        if (in_array($this->ONLY_POSITIVE, $flags)) {
-            if (!$this->FUNCTION_VALIDATE_POSITIVE_INTEGER($var)) {
-                // return INVALID_DATA if not positive number
-                return $this->INVALID_DATA("Integer");
-            }
-        }
-        if (in_array($this->ONLY_NEGATIVE, $flags)) {
-            if (!$this->FUNCTION_VALIDATE_NEGATIVE_INTEGER($var)) {
-                // return INVALID_DATA if not negative number
-                return $this->INVALID_DATA("Integer");
-            }
-        }
+
+        // return INVALID_DATA if not positive number
+        if (in_array($this->ONLY_POSITIVE, $flags))
+            if (!$this->FUNCTION_VALIDATE_POSITIVE_INTEGER($var)) return $this->INVALID_DATA("Integer");
+
+        // return INVALID_DATA if not negative number
+        if (in_array($this->ONLY_NEGATIVE, $flags))
+            if (!$this->FUNCTION_VALIDATE_NEGATIVE_INTEGER($var)) return $this->INVALID_DATA("Integer");
 
         // return null if no valid integer
         if (in_array($this->STRICT, $flags)) {
 
-            // Strict validation. Float => Not valid
-            if ($this->FUNCTION_VALIDATE_DOUBLE_STRICT($var)) {
-                return $this->RETURN_IF_NOT_EMPTY((double) $var);
-            } else {
-                return $this->INVALID_DATA("Double");
-            }
+            // Valid
+            if ($this->FUNCTION_VALIDATE_DOUBLE_STRICT($var)) return $this->RETURN_IF_NOT_EMPTY((double) $var);
+            
+            // Invalid
+            return $this->INVALID_DATA("Double");
 
         }
-        else {
 
-            // Not strict: Float / Double / Integer => Valid
-            if ($this->FUNCTION_VALIDATE_DOUBLE($var)) {
-                return $this->RETURN_IF_NOT_EMPTY((double) $var);
-            } else {
-                return $this->INVALID_DATA("Double");
-            }
-
-        }
+        // Valid
+        if ($this->FUNCTION_VALIDATE_DOUBLE($var)) return $this->RETURN_IF_NOT_EMPTY((double) $var);
+            
+        // Invalid
+        return $this->INVALID_DATA("Double");
     }
 
     public function FILTER_FLOAT            ($flags=null) {
@@ -600,50 +550,41 @@ class Sanitizer {
 
 
         // sanitize variable
-        $var = filter_var($var, FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION);
+        $var = $this->RETURN_ONLY_ALLOWED_CHARS($var, "0-9.,-");
 
 
         /**
          * Flags
          */
-        if (in_array($this->NO_VALIDATION, $flags)) {
-            // return without validation
+
+        // return without validation
+        if (in_array($this->NO_VALIDATION, $flags))
             return $this->RETURN_IF_NOT_EMPTY((float) $var);
-        }
-        if (in_array($this->ONLY_POSITIVE, $flags)) {
-            if (!$this->FUNCTION_VALIDATE_POSITIVE_INTEGER($var)) {
-                // return INVALID_DATA if not positive number
-                return $this->INVALID_DATA("Integer");
-            }
-        }
-        if (in_array($this->ONLY_NEGATIVE, $flags)) {
-            if (!$this->FUNCTION_VALIDATE_NEGATIVE_INTEGER($var)) {
-                // return INVALID_DATA if not negative number
-                return $this->INVALID_DATA("Integer");
-            }
-        }
+
+        // return INVALID_DATA if not positive number
+        if (in_array($this->ONLY_POSITIVE, $flags))
+            if (!$this->FUNCTION_VALIDATE_POSITIVE_INTEGER($var)) return $this->INVALID_DATA("Integer");
+
+        // return INVALID_DATA if not negative number
+        if (in_array($this->ONLY_NEGATIVE, $flags))
+            if (!$this->FUNCTION_VALIDATE_NEGATIVE_INTEGER($var)) return $this->INVALID_DATA("Integer");
 
         // return null if no valid integer
         if (in_array($this->STRICT, $flags)) {
 
-            // Strict validation. Double => Not valid
-            if ($this->FUNCTION_VALIDATE_FLOAT_STRICT($var)) {
-                return $this->RETURN_IF_NOT_EMPTY((float) $var);
-            } else {
-                return $this->INVALID_DATA("Float");
-            }
+            // Valid
+            if ($this->FUNCTION_VALIDATE_FLOAT_STRICT($var)) return $this->RETURN_IF_NOT_EMPTY((float) $var);
+                
+            // Invalid
+            return $this->INVALID_DATA("Float");
 
         }
-        else {
-
-            // Not strict: Float / Double / Integer => Valid
-            if ($this->FUNCTION_VALIDATE_FLOAT($var)) {
-                return $this->RETURN_IF_NOT_EMPTY((float) $var);
-            } else {
-                return $this->INVALID_DATA("Float");
-            }
-
-        }
+        
+        // Valid
+        if ($this->FUNCTION_VALIDATE_FLOAT($var)) return $this->RETURN_IF_NOT_EMPTY((float) $var);
+            
+        // Invalid
+        return $this->INVALID_DATA("Float");
     }
 
     public function FILTER_STRING           ($flags=null) {
@@ -658,55 +599,89 @@ class Sanitizer {
         // error prevention: if flags isn't array then put the flag or NULL into an array
         if (!is_array($flags)) { $flags = array($flags); }
 
-
-        // Remove everything except these characters:
         
-        // 0-9           // Numbers
-        // a-zA-Z        // English alphabet
-        // æøåÆØÅ        // Norwegian letters
-        // ,\\.\-\/=$§
-		// |\*\+\[\]!\?
-		// _:;@#%&\(\)\s // Symbols 3/3
-        // \n\r          // New line on Linux & Windows
-        //  \t           // Spaces + Tabs
-        // \"\'          // Single & Double quotes - only if ALLOW_QUOTES flag present
-
-
-        // Default regex / allowed chars
-        $regex = "0-9a-zA-Z,\\.\-\/=$\§|\*\+\[\]!\?_:;@#%&\(\)\s\n\r\t";
+        // Remove everything except these characters:
+        $accepted_chars  = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz,.:;_-+=\/€$§|*[]!?@#%&()';
+        $accepted_chars .= "\t\r\n"; // Tabs, Newline and Carriage Return
+        $accepted_chars .= chr(32);  // Regular Space char
 
 
         // if DENY_NORWEGIAN flag not present then add flag
-        if (!in_array($this->DENY_NORWEGIAN, $flags)) {
-            $regex .= "æøåÆØÅ";
-        }
+        if (!in_array($this->DENY_NORWEGIAN, $flags)) $accepted_chars .= "æøåÆØÅ";
 
         // if ALLOW_QUOTES flag present then add flag
-        if (in_array($this->ALLOW_QUOTES, $flags)) {
-            $regex .= "\"\'";
-        }
+        if (in_array($this->ALLOW_QUOTES, $flags)) $accepted_chars .= "\"'";
 
-		    // remove outer white-space - only if NO_TRIM flag isn't present
-        if (!in_array($this->NO_TRIM, $flags)) {
-		    $var = trim($var);
-        }
+		// remove outer white-space - only if NO_TRIM flag isn't present
+        if (!in_array($this->NO_TRIM, $flags)) $var = trim($var);
 
         // Default: Remove html tags, example: <p></p> - only if NO_HTMLSTRIP flag isn't present
-        if (!in_array($this->NO_HTMLSTRIP, $flags)) {
-            $var = strip_tags($var);
-        } else {
-            // NO_HTMLSTRIP then add < and > to allowed chars
-            $regex .= "\<\>";
-        }
+        if (!in_array($this->NO_HTMLSTRIP, $flags)) $var = strip_tags($var);
 
-        // Remove Accent characters
-        $var = $this->REPLACE_ACCENTS($var);
+        // NO_HTMLSTRIP then add < and > to allowed chars
+        if (in_array($this->NO_HTMLSTRIP, $flags))  $accepted_chars .= "<>";
 
-        // Remove Non-printable characters
-        $var = $this->REPLACE_NONPRINTABLE($var);
 
-        // Remove all chars not in regex match
-        $var = preg_replace("/[^{$regex}]/", "", $var);
+        // Remove all chars not in $accepted_chars
+        $var = $this->RETURN_ONLY_ALLOWED_CHARS($var, $accepted_chars);
+
+
+        return $this->RETURN_IF_NOT_EMPTY((string) $var);
+    }
+
+    public function FILTER_STRING_CUSTOM    ($allowCustom, $flags=null) {
+        return function($var) use ($allowCustom, $flags) {
+            return $this->FUNCTION_FILTER_STRING_ALLOW_CUSTOM($var, $allowCustom, $flags);
+        };
+    }
+    public function FUNCTION_FILTER_STRING_ALLOW_CUSTOM  ($var, $allowCustom, $flags=null) {
+        // error prevention: if $var is string then return null
+        if ($this->NOT_SANITIZABLE($var)) { return $this->INVALID_DATA("String"); }
+
+        // error prevention: if flags isn't array then put the flag or NULL into an array
+        if (!is_array($flags)) { $flags = array($flags); }
+
+        
+        // Remove everything except these characters
+        $accepted_chars  = $allowCustom;
+
+        // if DENY_NORWEGIAN flag not present then add flag
+        if (!in_array($this->DENY_NORWEGIAN, $flags)) $accepted_chars .= "æøåÆØÅ";
+
+        // if ALLOW_QUOTES flag present then add flag
+        if (in_array($this->ALLOW_QUOTES, $flags)) $accepted_chars .= "\"'";
+
+		// remove outer white-space - only if NO_TRIM flag isn't present
+        if (!in_array($this->NO_TRIM, $flags)) $var = trim($var);
+
+        // Default: Remove html tags, example: <p></p> - only if NO_HTMLSTRIP flag isn't present
+        if (!in_array($this->NO_HTMLSTRIP, $flags)) $var = strip_tags($var);
+
+        // NO_HTMLSTRIP then add < and > to allowed chars
+        if (in_array($this->NO_HTMLSTRIP, $flags))  $accepted_chars .= "<>";
+
+
+        // Remove all chars not in $accepted_chars
+        $var = $this->RETURN_ONLY_ALLOWED_CHARS($var, $accepted_chars);
+
+
+        return $this->RETURN_IF_NOT_EMPTY((string) $var);
+    }
+
+    public function REMOVE_CHARS           ($denyCustom, $flags=null) {
+        return function($var) use ($denyCustom, $flags) {
+            return $this->FUNCTION_FILTER_STRING_DENY_CUSTOM($var, $denyCustom, $flags);
+        };
+    }
+    public function FUNCTION_FILTER_STRING_DENY_CUSTOM  ($var, $denyCustom, $flags=null) {
+        // error prevention: if $var is string then return null
+        if ($this->NOT_SANITIZABLE($var)) { return $this->INVALID_DATA("String"); }
+
+        // error prevention: if flags isn't array then put the flag or NULL into an array
+        if (!is_array($flags)) { $flags = array($flags); }
+
+        // Remove all chars not in $accepted_chars
+        $var = $this->RETURN_ALL_EXCEPT_CHARS($var, $denyCustom);
 
         return $this->RETURN_IF_NOT_EMPTY((string) $var);
     }
@@ -723,25 +698,20 @@ class Sanitizer {
         // error prevention: if flags isn't array then put the flag or NULL into an array
         if (!is_array($flags)) { $flags = array($flags); }
 
-        // Default regex / allowed chars
-        $regex = "a-zA-Z0-9_\-\.\s";
+
+        // Remove everything except these characters:
+        $accepted_chars  = 'a-zA-Z0-9_-.';
+        $accepted_chars .= chr(32);  // Regular Space char
+
 
         // if DENY_NORWEGIAN flag not present then add flag
-        if (!in_array($this->DENY_NORWEGIAN, $flags)) {
-            $regex .= "æøåÆØÅ";
-        }
+        if (!in_array($this->DENY_NORWEGIAN, $flags)) $accepted_chars .= "æøåÆØÅ";
 
-        // non optional function which removes unwanted chars
+		// remove outer white-space
         $var = trim($var);
-        $var = strip_tags($var);
 
-        // Remove Accent characters
-        $var = $this->REPLACE_ACCENTS($var);
-
-        // Remove Non-printable characters
-        $var = $this->REPLACE_NONPRINTABLE($var);
-
-        $var = preg_replace("/[^{$regex}]/", "", $var);
+        // Remove all chars not in $accepted_chars
+        $var = $this->RETURN_ONLY_ALLOWED_CHARS($var, $accepted_chars);
 
         return $this->RETURN_IF_NOT_EMPTY((string) $var, "Filename");
     }
@@ -758,25 +728,21 @@ class Sanitizer {
         // error prevention: if flags isn't array then put the flag or NULL into an array
         if (!is_array($flags)) { $flags = array($flags); }
 
-        // Default regex / allowed chars
-        $regex = "a-zA-Z0-9_\-\.\\\\\/:\s";
+
+        // Remove everything except these characters:
+        $accepted_chars  = 'a-zA-Z0-9_-.\/:';
+        $accepted_chars .= chr(32);  // Regular Space char
+
 
         // if DENY_NORWEGIAN flag not present then add flag
-        if (!in_array($this->DENY_NORWEGIAN, $flags)) {
-            $regex .= "æøåÆØÅ";
-        }
+        if (!in_array($this->DENY_NORWEGIAN, $flags)) $accepted_chars .= "æøåÆØÅ";
 
-        // non optional function which removes unwanted chars
+		// remove outer white-space
         $var = trim($var);
-        $var = strip_tags($var);
 
-        // Remove Accent characters
-        $var = $this->REPLACE_ACCENTS($var);
 
-        // Remove Non-printable characters
-        $var = $this->REPLACE_NONPRINTABLE($var);
-
-        $var = preg_replace("/[^{$regex}]/", "", $var);
+        // Remove all chars not in $accepted_chars
+        $var = $this->RETURN_ONLY_ALLOWED_CHARS($var, $accepted_chars);
 
         return $this->RETURN_IF_NOT_EMPTY((string) $var, "Filepath");
     }
@@ -799,8 +765,10 @@ class Sanitizer {
         // Remove Non-printable characters
         $var = $this->REPLACE_NONPRINTABLE($var);
 
+        
         // sanitize url
         $var = filter_var($var, FILTER_SANITIZE_URL);
+
 
         // if NO_VALIDATION flag present then return without validation
         if (in_array($this->NO_VALIDATION, $flags)) {
@@ -857,18 +825,19 @@ class Sanitizer {
     public function FUNCTION_FILTER_YEAR    ($var, $flags=null) {
         // error prevention: if $var is string then return null
         if ($this->NOT_SANITIZABLE($var)) { return $this->INVALID_DATA("Year"); }
+        
+        // error prevention: turn flags into array
+        if (!is_array($flags)) { $flags = array($flags); }
 
         // sanitize year
         $var = (integer) filter_var($var, FILTER_SANITIZE_NUMBER_INT);
 
         // if NO_VALIDATION flag present then return without validation
-        if (in_array($this->NO_VALIDATION, $flags)) {
+        if (in_array($this->NO_VALIDATION, $flags))
             return $this->RETURN_IF_NOT_EMPTY((integer) $var, "Year");
-        }
 
-        if ($this->FUNCTION_VALIDATE_YEAR($var)) {
+        if ($this->FUNCTION_VALIDATE_YEAR($var))
             return $this->RETURN_IF_NOT_EMPTY((integer) $var, "Year");
-        }
 
         return $this->INVALID_DATA("Year");
     }
@@ -882,17 +851,19 @@ class Sanitizer {
         // error prevention: if $var is string then return null
         if ($this->NOT_SANITIZABLE($var)) { return $this->INVALID_DATA("Timestamp"); }
 
+        // error prevention: turn flags into array
+        if (!is_array($flags)) { $flags = array($flags); }
+
         // sanitize timestmp
         $var = (integer) filter_var($var, FILTER_SANITIZE_NUMBER_INT);
 
         // if NO_VALIDATION flag present then return without validation
-        if (in_array($this->NO_VALIDATION, $flags)) {
+        if (in_array($this->NO_VALIDATION, $flags))
             return $this->RETURN_IF_NOT_EMPTY((integer) $var, "Timestamp");
-        }
 
-        if ($this->FUNCTION_VALIDATE_TIMESTAMP($var)) {
+        if ($this->FUNCTION_VALIDATE_TIMESTAMP($var))
             return $this->RETURN_IF_NOT_EMPTY((integer) $var, "Timestamp");
-        }
+
 
         return $this->INVALID_DATA("Timestamp");
     }
@@ -909,19 +880,19 @@ class Sanitizer {
         // error prevention: if flags isn't array then put the flag or NULL into an array
         if (!is_array($flags)) { $flags = array($flags); }
 
-        // non optional function which removes unwanted chars
+        // Remove everything except these characters:
+        $accepted_chars  = '0-9_-.\/:';
+        $accepted_chars .= chr(32);  // Regular Space char
+
+
+        // if DENY_NORWEGIAN flag not present then add flag
+        if (!in_array($this->DENY_NORWEGIAN, $flags)) $accepted_chars .= "æøåÆØÅ";
+
+        // remove outer white-space
         $var = trim($var);
-        $var = strip_tags($var);
 
-        // Remove Accent characters
-        $var = $this->REPLACE_ACCENTS($var);
-
-        // Remove Non-printable characters
-        $var = $this->REPLACE_NONPRINTABLE($var);
-
-        // Default regex / allowed chars
-        $regex = "0-9\-\.\\\\\/:";
-        $var = preg_replace("/[^{$regex}]/", "", $var);
+        // Remove all chars not in $accepted_chars
+        $var = $this->RETURN_ONLY_ALLOWED_CHARS($var, $accepted_chars);
         
 
         // if NO_VALIDATION flag present then return without validation
@@ -949,19 +920,19 @@ class Sanitizer {
         // error prevention: if flags isn't array then put the flag or NULL into an array
         if (!is_array($flags)) { $flags = array($flags); }
 
-        // non optional function which removes unwanted chars
+        // Remove everything except these characters:
+        $accepted_chars  = '0-9_-.\/:';
+        $accepted_chars .= chr(32);  // Regular Space char
+
+
+        // if DENY_NORWEGIAN flag not present then add flag
+        if (!in_array($this->DENY_NORWEGIAN, $flags)) $accepted_chars .= "æøåÆØÅ";
+
+        // remove outer white-space
         $var = trim($var);
-        $var = strip_tags($var);
 
-        // Remove Accent characters
-        $var = $this->REPLACE_ACCENTS($var);
-
-        // Remove Non-printable characters
-        $var = $this->REPLACE_NONPRINTABLE($var);
-
-        // Default regex / allowed chars
-        $regex = "0-9\-\.\\\\\/:\s";
-        $var = preg_replace("/[^{$regex}]/", "", $var);
+        // Remove all chars not in $accepted_chars
+        $var = $this->RETURN_ONLY_ALLOWED_CHARS($var, $accepted_chars);
         
 
         // if NO_VALIDATION flag present then return without validation
@@ -1038,13 +1009,151 @@ class Sanitizer {
 
     public function FUNCTION_VALIDATE_JSON              ($var): bool {
         // not string == not JSON
-        if (!is_string($var)) return false;
+        if (!is_string($var)) {
+            return false;
+        }
 
-        // array or object
-        if (!preg_match("/^({|\[).+(\]|})$/", $var)) return false;
+        // try to decode
+        json_decode($var);
 
-        // if JSON return true
-        return !preg_match('/[^,:{}\\[\\]0-9.\\-+Eaeflnr-u \\n\\r\    ]/', preg_replace('/"(\\.|[^"\\\\])*"/', '', $var));
+        // if no json error then successfull json
+        return json_last_error() === JSON_ERROR_NONE;
+    }
+
+
+
+    /*
+     * CHECK REQUIRED
+     */
+    public function CHECK_REQUIRED_ARRAY                 ($arr, $required_array, $flags=null) {
+        // error prevention: if function passed into input array
+        if (is_callable($arr))              return false;
+        if (is_callable($required_array))   $required_array = array($required_array);
+
+        // correct data
+        if (is_object($arr))            $arr = (array) $arr;
+        if (is_object($required_array)) $required_array = (array) $required_array;
+
+        // error prevention: convert to array if isn't
+        if (!is_array($arr))            $arr = array($arr);
+        if (!is_array($flags))          $flags = array($flags);
+        if (!is_array($required_array)) $required_array = array($required_array);
+
+
+        if(count($required_array) == 1 && empty(array_keys($required_array)[0])) {
+
+            // Expected array with one filter
+            return $this->FUNCTION_CHECK_REQUIRED_SINGLEFILTER($arr, $required_array, $flags);
+
+        } else {
+
+            // Expected array with multiple filters
+            return $this->FUNCTION_CHECK_REQUIRED_MULTIFILTER($arr, $required_array, $flags);
+
+        }
+    }
+    public function FUNCTION_CHECK_REQUIRED_SINGLEFILTER($arr, $required_array, $flags): bool {
+        $return_array = array();
+
+        // error prevention: turn inouts into array
+        if (!is_array($arr))            $arr = array($arr);
+        if (!is_array($flags))          $flags = array($flags);
+        if (!is_array($required_array)) $required_array = array($required_array);
+
+        // foreach $arr
+        foreach ($arr as $arrkey => $arrvalue) {
+            // check if required field. Skip if not.
+            if (!isset($required_array[$arrkey]))   continue;
+            if ($required_array[$arrkey] === false) continue;
+
+            // no value / nothing to validate
+            if (!isset($arrvalue)) return false;
+            
+            // error prevention
+            if (is_object($arrvalue)) $arrvalue = (array) $arrvalue;
+
+            // if array, then check if empty
+            if (is_array($required_array[0])) {
+                if ($this->CHECK_REQUIRED_ARRAY($arrvalue, $required_array[0], $flags) === false) return false;
+                $return_array[] = $arrvalue;
+                continue;
+            }
+
+            // if null / undefined value
+            if ($arrvalue === null)  return false;
+
+            $return_array[] = $arrvalue;
+        }
+
+        return true;
+    }
+    public function FUNCTION_CHECK_REQUIRED_MULTIFILTER ($arr, $required_array, $flags) {
+        $return_array = array();
+
+        // Error prevention: if not array
+        if (!is_array($arr))            $arr = array($arr);
+        if (!is_array($flags))          $flags = array($flags);
+        if (!is_array($required_array)) $required_array = array($required_array);
+
+        // Each key spesific
+        foreach($required_array as $requirekey => $require_function_or_array) {
+            // check if required field. Skip if not.
+            if($require_function_or_array === false) continue;
+
+            // if key don't exist in array
+            if(!isset($arr[$requirekey])) return false;
+
+            // if function
+            if (is_callable($require_function_or_array)) {
+                // if null / undefined value
+                if ($arr[$requirekey] === null)  return false;
+            }
+
+            // if object
+            if (is_object($arr[$requirekey]))           $arr[$requirekey] = (array) $arr[$requirekey];
+            if (is_object($require_function_or_array))  $require_function_or_array = (array) $require_function_or_array;
+
+            // if array
+            if (is_array($require_function_or_array)) {
+                // if array with one filter
+                if(count($require_function_or_array) == 1 && empty(array_keys($require_function_or_array)[0])) {
+                    if ($this->FUNCTION_CHECK_REQUIRED_SINGLEFILTER($arr[$requirekey], $require_function_or_array, $flags) === false) return false;
+                    $return_array[$requirekey] = $arr[$requirekey];
+                    continue;
+                }
+
+                // if empty array
+                if (count($arr[$requirekey]) === 0) return false;
+
+                // if null / undefined value
+                if ($arr[$requirekey] === null)  return false;
+                $return_array[$requirekey] = $arr[$requirekey];
+                continue;
+            }
+            // if array
+            if (is_array($arr[$requirekey])) {
+                // if array with one filter
+                if(count($arr[$requirekey]) == 1 && empty(array_keys($arr[$requirekey])[0])) {
+                    if ($this->FUNCTION_CHECK_REQUIRED_SINGLEFILTER($arr[$requirekey], $require_function_or_array, $flags) === false) return false;
+                    $return_array[$requirekey] = $arr[$requirekey];
+                    continue;
+                }
+
+                // if empty array
+                if (count($arr[$requirekey]) === 0) return false;
+
+                // if null / undefined value
+                if ($arr[$requirekey] === null)  return false;
+                $return_array[$requirekey] = $arr[$requirekey];
+                continue;
+            }
+
+            // if null / undefined value
+            if ($arr[$requirekey] === null)  return false;
+            $return_array[$requirekey] = $arr[$requirekey];
+        }
+
+        return true;
     }
 }
 
