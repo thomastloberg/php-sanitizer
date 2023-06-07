@@ -5,7 +5,7 @@
  *                 PHP Sanitizer
  * 
  * 
- * @version 1.2.5
+ * @version 1.2.51
  * @author Thomas Tufta Løberg
  * @link https://github.com/thomastloberg/php-sanitizer
  * @license https://github.com/thomastloberg/php-sanitizer/LICENSE
@@ -175,7 +175,7 @@ class Sanitizer {
 
         // error prevention: convert to array if isn't
         if (!is_array($arr))    $arr    = array($arr);
-        if (!is_array($flags))  $flags = array($flags);
+        if (!is_array($flags))  $flags  = array($flags);
         if (!is_array($filter)) $filter = array($filter);
 
 
@@ -234,7 +234,7 @@ class Sanitizer {
 
         // Validate that one or more keys have a value
         if(count($return_array) > 0) {
-            foreach ($return_array as $returnkey => $returnvalue) {
+            foreach ($return_array as $returnvalue) {
                 if (is_array($returnvalue) && count($returnvalue) > 0)
                     return $return_array;
 
@@ -254,15 +254,8 @@ class Sanitizer {
 
         // Each key spesific
         foreach($filter as $filterkey => $filter_function_or_array) {
-            // if key exist in array
-            if(!isset($arr[$filterkey])) {
-                $newValue = $this->INVALID_DATA();
-                $return_array[$filterkey] = $newValue;
-                continue;
-            }
-            
             // look for JSON data and decode if found
-            if (in_array($this->EXPECT_JSON, $flags)) {
+            if (isset($arr[$filterkey]) && in_array($this->EXPECT_JSON, $flags)) {
                 if ($this->FUNCTION_VALIDATE_JSON($arr[$filterkey])) {
                     // if json then decode
                     $arr[$filterkey] = json_decode($arr[$filterkey]);
@@ -274,11 +267,11 @@ class Sanitizer {
             }
 
             // if object
-            if (is_object($arr[$filterkey])) $arr[$filterkey] = (array) $arr[$filterkey];
+            if (isset($arr[$filterkey]) && is_object($arr[$filterkey])) $arr[$filterkey] = (array) $arr[$filterkey];
 
             // if function
             if (is_callable($filter_function_or_array)) {
-                $return_array[$filterkey] = $this->Sanitize_Variable($arr[$filterkey], $filter_function_or_array, $flags);
+                $return_array[$filterkey] = $this->Sanitize_Variable($arr[$filterkey] ?? null, $filter_function_or_array, $flags);
                 continue;
             }
 
@@ -289,12 +282,12 @@ class Sanitizer {
             if (is_array($filter_function_or_array)) {
                 // if array with one filter
                 if(count($filter_function_or_array) == 1 && empty(array_keys($filter_function_or_array)[0])) {
-                    $return_array[$filterkey] = $this->FUNCTION_SANITIZEARRAY_SINGLEFILTER(array(), $arr[$filterkey], $filter_function_or_array, $flags);
+                    $return_array[$filterkey] = $this->FUNCTION_SANITIZEARRAY_SINGLEFILTER(array(), $arr[$filterkey] ?? null, $filter_function_or_array, $flags);
                     continue;
                 }
 
                 // if array with multiple filters
-                $return_array[$filterkey] = $this->Sanitize_Array($arr[$filterkey], $filter_function_or_array, $flags);
+                $return_array[$filterkey] = $this->Sanitize_Array($arr[$filterkey] ?? null, $filter_function_or_array, $flags);
                 continue;
             }
         }
@@ -302,7 +295,7 @@ class Sanitizer {
 
         // Validate that one or more keys have a value
         if(count($return_array) > 0) {
-            foreach ($return_array as $returnkey => $returnvalue) {
+            foreach ($return_array as $returnvalue) {
                 if (is_array($returnvalue) && count($returnvalue) > 0)
                     return $return_array;
 
@@ -341,21 +334,23 @@ class Sanitizer {
 
         return $var;
     }
-    public function REPLACE_ACCENTS         (string $str): string {
+    public function REPLACE_ACCENTS         ($str): string {
         // Remove Accent characters like: á => a
 
         // Credits: Darryl Snow
         // https://gist.github.com/darryl-snow/3817411
 
+        if(strlen($str) == 0) return "";
         $str = htmlentities($str, ENT_COMPAT, "UTF-8");
         $str = preg_replace('/&([a-zA-Z])(uml|acute|grave|circ|tilde);/', '$1', $str);
         return html_entity_decode($str);
     }
-    public function REPLACE_NONPRINTABLE    (string $str): string {
+    public function REPLACE_NONPRINTABLE    ($str): string {
         // ASCII & UTF-8 compatible
+        if(strlen($str) == 0) return "";
         return preg_replace('/[\x00-\x1F\x7F\xA0]/u', '', $str);
     }
-    public function RETURN_ONLY_ALLOWED_CHARS (string $var, string $allowedChars): string {
+    public function RETURN_ONLY_ALLOWED_CHARS ($var, $allowedChars): string {
         if(strlen($var) == 0) return "";
 
         $output = "";
@@ -373,7 +368,7 @@ class Sanitizer {
 
         return $output;
     }
-    public function RETURN_ALL_EXCEPT_CHARS (string $var, string $deniedChars): string {
+    public function RETURN_ALL_EXCEPT_CHARS ($var, $deniedChars): string {
         if(strlen($var) == 0) return "";
 
         $output = "";
