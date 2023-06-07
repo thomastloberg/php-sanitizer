@@ -5,7 +5,7 @@
  *                 PHP Sanitizer
  * 
  * 
- * @version 1.2.51
+ * @version 1.2.52
  * @author Thomas Tufta Løberg
  * @link https://github.com/thomastloberg/php-sanitizer
  * @license https://github.com/thomastloberg/php-sanitizer/LICENSE
@@ -292,20 +292,8 @@ class Sanitizer {
             }
         }
 
-
-        // Validate that one or more keys have a value
-        if(count($return_array) > 0) {
-            foreach ($return_array as $returnvalue) {
-                if (is_array($returnvalue) && count($returnvalue) > 0)
-                    return $return_array;
-
-                if ($returnvalue !== null)
-                    return $return_array;
-            }
-        }
-
-        // No value found
-        return $this->INVALID_DATA("Array");
+        // Return result
+        return $return_array;
     }
     
     public function Sanitize_Object         ($obj, $filter, $flags=null) {
