@@ -5,7 +5,7 @@
  *                 PHP Sanitizer
  * 
  * 
- * @version 1.2.6
+ * @version 1.2.61
  * @author Thomas Tufta Løberg
  * @link https://github.com/thomastloberg/php-sanitizer
  * @license https://github.com/thomastloberg/php-sanitizer/LICENSE
@@ -63,7 +63,7 @@
  * 
  * 
  * Check Required:
- *      VALIDATE_REQUIRED_FIELDS()  # Check if required array keys exists and is not empty. True if success. Array of bad-fields if fail.
+ *      MISSING_FIELDS()  # False if no missing fields, Array of fields if missing
  * 
  * 
  */
@@ -151,6 +151,11 @@ class Sanitizer {
         if (is_object($filter)) { $filter = (array) $filter; }
 
         return (object) $this->Sanitize_Array($obj, $filter, $flags);
+    }
+    public function MISSING_FIELDS          ($arr, $required_fields, $flags=null) {
+        // Another name for VALIDATE_REQUIRED_FIELDS to make it more readable
+        $validate = $this->VALIDATE_REQUIRED_FIELDS($arr, $required_fields, $flags);
+        return $validate === true ? false : $validate;
     }
 
 
@@ -1107,7 +1112,7 @@ class Sanitizer {
                 }
 
                 // if empty array
-                if (count($arr[$requirekey]) === 0) { $badfields[] = $this->FUNCTION_ADD_BADFIELD($requirekey, $require_function_or_array); continue; }
+                if (is_array($arr[$requirekey]) && count($arr[$requirekey]) === 0) { $badfields[] = $this->FUNCTION_ADD_BADFIELD($requirekey, $require_function_or_array); continue; }
 
                 // if null / undefined value
                 if ($arr[$requirekey] === null) { $badfields[] = $this->FUNCTION_ADD_BADFIELD($requirekey, $require_function_or_array); continue; }
