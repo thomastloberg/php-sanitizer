@@ -5,7 +5,7 @@
  *                 PHP Sanitizer
  * 
  * 
- * @version 1.2.61
+ * @version 1.2.7
  * @author Thomas Tufta Løberg
  * @link https://github.com/thomastloberg/php-sanitizer
  * @license https://github.com/thomastloberg/php-sanitizer/LICENSE
@@ -114,7 +114,7 @@ class Sanitizer {
         }
 
         if (is_object($var)) $var = (array) $var;
-        
+
         return count($flags) > 0 ? $filter($var, $flags) : $filter($var);
     }
     public function Sanitize_Array          ($arr, $filter, $flags=null) {
@@ -469,6 +469,9 @@ class Sanitizer {
         // error prevention: if flags isn't array then put the flag or NULL into an array
         if (!is_array($flags)) { $flags = array($flags); }
 
+        // make sure input is UTF-8
+        $var = mb_convert_encoding($var, 'UTF-8');
+
 
         // sanitize variable
         $var = $this->RETURN_ONLY_ALLOWED_CHARS($var, "0-9-");
@@ -513,6 +516,9 @@ class Sanitizer {
 
         // error prevention: if flags isn't array then put the flag or NULL into an array
         if (!is_array($flags)) { $flags = array($flags); }
+
+        // make sure input is UTF-8
+        $var = mb_convert_encoding($var, 'UTF-8');
 
 
         // sanitize variable
@@ -559,6 +565,9 @@ class Sanitizer {
         // error prevention: if flags isn't array then put the flag or NULL into an array
         if (!is_array($flags)) { $flags = array($flags); }
 
+        // make sure input is UTF-8
+        $var = mb_convert_encoding($var, 'UTF-8');
+
 
         // sanitize variable
         $var = $this->RETURN_ONLY_ALLOWED_CHARS($var, "0-9.,-");
@@ -604,6 +613,9 @@ class Sanitizer {
         // error prevention: if flags isn't array then put the flag or NULL into an array
         if (!is_array($flags)) { $flags = array($flags); }
 
+        // make sure input is UTF-8
+        $var = mb_convert_encoding($var, 'UTF-8');
+
         
         // Remove everything except these characters:
         $accepted_chars  = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz,.:;_-+=\/€$§|*[]!?@#%&()';
@@ -630,6 +642,9 @@ class Sanitizer {
         // Remove all chars not in $accepted_chars
         $var = $this->RETURN_ONLY_ALLOWED_CHARS($var, $accepted_chars);
 
+        // make sure output is UTF-8
+        $var = mb_convert_encoding($var, 'UTF-8');
+
 
         return $this->RETURN_IF_NOT_EMPTY((string) $var);
     }
@@ -639,6 +654,9 @@ class Sanitizer {
 
         // error prevention: if flags isn't array then put the flag or NULL into an array
         if (!is_array($flags)) { $flags = array($flags); }
+
+        // make sure input is UTF-8
+        $var = mb_convert_encoding($var, 'UTF-8');
 
         
         // Remove everything except these characters
@@ -663,6 +681,9 @@ class Sanitizer {
         // Remove all chars not in $accepted_chars
         $var = $this->RETURN_ONLY_ALLOWED_CHARS($var, $accepted_chars);
 
+        // make sure output is UTF-8
+        $var = mb_convert_encoding($var, 'UTF-8');
+
 
         return $this->RETURN_IF_NOT_EMPTY((string) $var);
     }
@@ -673,8 +694,14 @@ class Sanitizer {
         // error prevention: if flags isn't array then put the flag or NULL into an array
         if (!is_array($flags)) { $flags = array($flags); }
 
+        // make sure input is UTF-8
+        $var = mb_convert_encoding($var, 'UTF-8');
+
         // Remove all chars not in $accepted_chars
         $var = $this->RETURN_ALL_EXCEPT_CHARS($var, $denyCustom);
+
+        // make sure output is UTF-8
+        $var = mb_convert_encoding($var, 'UTF-8');
 
         return $this->RETURN_IF_NOT_EMPTY((string) $var);
     }
@@ -684,6 +711,9 @@ class Sanitizer {
 
         // error prevention: if flags isn't array then put the flag or NULL into an array
         if (!is_array($flags)) { $flags = array($flags); }
+
+        // make sure input is UTF-8
+        $var = mb_convert_encoding($var, 'UTF-8');
 
 
         // Remove everything except these characters:
@@ -700,6 +730,9 @@ class Sanitizer {
         // Remove all chars not in $accepted_chars
         $var = $this->RETURN_ONLY_ALLOWED_CHARS($var, $accepted_chars);
 
+        // make sure output is UTF-8
+        $var = mb_convert_encoding($var, 'UTF-8');
+
         return $this->RETURN_IF_NOT_EMPTY((string) $var, "Filename");
     }
     public function FUNCTION_FILTER_FILEPATH($var, $flags=null) {
@@ -708,6 +741,9 @@ class Sanitizer {
 
         // error prevention: if flags isn't array then put the flag or NULL into an array
         if (!is_array($flags)) { $flags = array($flags); }
+
+        // make sure input is UTF-8
+        $var = mb_convert_encoding($var, 'UTF-8');
 
 
         // Remove everything except these characters:
@@ -721,9 +757,11 @@ class Sanitizer {
 		// remove outer white-space
         $var = trim($var);
 
-
         // Remove all chars not in $accepted_chars
         $var = $this->RETURN_ONLY_ALLOWED_CHARS($var, $accepted_chars);
+
+        // make sure output is UTF-8
+        $var = mb_convert_encoding($var, 'UTF-8');
 
         return $this->RETURN_IF_NOT_EMPTY((string) $var, "Filepath");
     }
@@ -734,15 +772,20 @@ class Sanitizer {
         // error prevention: if flags isn't array then put the flag or NULL into an array
         if (!is_array($flags)) { $flags = array($flags); }
 
+        // make sure input is UTF-8
+        $var = mb_convert_encoding($var, 'UTF-8');
+
         // Remove Accent characters
         $var = $this->REPLACE_ACCENTS($var);
 
         // Remove Non-printable characters
         $var = $this->REPLACE_NONPRINTABLE($var);
 
-        
         // sanitize url
         $var = filter_var($var, FILTER_SANITIZE_URL);
+
+        // make sure output is UTF-8
+        $var = mb_convert_encoding($var, 'UTF-8');
 
 
         // if NO_VALIDATION flag present then return without validation
@@ -764,6 +807,9 @@ class Sanitizer {
         // error prevention: if flags isn't array then put the flag or NULL into an array
         if (!is_array($flags)) { $flags = array($flags); }
 
+        // make sure input is UTF-8
+        $var = mb_convert_encoding($var, 'UTF-8');
+
         // Remove Accent characters
         $var = $this->REPLACE_ACCENTS($var);
 
@@ -772,6 +818,9 @@ class Sanitizer {
 
         // sanitize email
         $var = filter_var($var, FILTER_SANITIZE_EMAIL);
+
+        // make sure output is UTF-8
+        $var = mb_convert_encoding($var, 'UTF-8');
 
         // if NO_VALIDATION flag present then return without validation
         if (in_array($this->NO_VALIDATION, $flags)) {
@@ -792,6 +841,9 @@ class Sanitizer {
         // error prevention: turn flags into array
         if (!is_array($flags)) { $flags = array($flags); }
 
+        // make sure input is UTF-8
+        $var = mb_convert_encoding($var, 'UTF-8');
+
         // sanitize year
         $var = (integer) filter_var($var, FILTER_SANITIZE_NUMBER_INT);
 
@@ -810,6 +862,9 @@ class Sanitizer {
 
         // error prevention: turn flags into array
         if (!is_array($flags)) { $flags = array($flags); }
+
+        // make sure input is UTF-8
+        $var = mb_convert_encoding($var, 'UTF-8');
 
         // sanitize timestmp
         $var = (integer) filter_var($var, FILTER_SANITIZE_NUMBER_INT);
@@ -831,6 +886,9 @@ class Sanitizer {
         // error prevention: if flags isn't array then put the flag or NULL into an array
         if (!is_array($flags)) { $flags = array($flags); }
 
+        // make sure input is UTF-8
+        $var = mb_convert_encoding($var, 'UTF-8');
+
         // Remove everything except these characters:
         $accepted_chars  = '0-9_-.\/:';
         $accepted_chars .= chr(32);  // Regular Space char
@@ -844,6 +902,9 @@ class Sanitizer {
 
         // Remove all chars not in $accepted_chars
         $var = $this->RETURN_ONLY_ALLOWED_CHARS($var, $accepted_chars);
+
+        // make sure output is UTF-8
+        $var = mb_convert_encoding($var, 'UTF-8');
         
 
         // if NO_VALIDATION flag present then return without validation
@@ -865,6 +926,9 @@ class Sanitizer {
         // error prevention: if flags isn't array then put the flag or NULL into an array
         if (!is_array($flags)) { $flags = array($flags); }
 
+        // make sure input is UTF-8
+        $var = mb_convert_encoding($var, 'UTF-8');
+
         // Remove everything except these characters:
         $accepted_chars  = '0-9_-.\/:';
         $accepted_chars .= chr(32);  // Regular Space char
@@ -878,6 +942,9 @@ class Sanitizer {
 
         // Remove all chars not in $accepted_chars
         $var = $this->RETURN_ONLY_ALLOWED_CHARS($var, $accepted_chars);
+
+        // make sure output is UTF-8
+        $var = mb_convert_encoding($var, 'UTF-8');
         
 
         // if NO_VALIDATION flag present then return without validation
@@ -955,6 +1022,9 @@ class Sanitizer {
         if (!is_array($arr))    return $this->INVALID_DATA("Array", gettype($arr));
         if (!is_array($filter)) return $this->INVALID_DATA("Array", gettype($filter));
 
+
+
+
         // Each key spesific
         foreach($filter as $filterkey => $filter_function_or_array) {
             // look for JSON data and decode if found
@@ -1010,7 +1080,7 @@ class Sanitizer {
         // Credits: Darryl Snow
         // https://gist.github.com/darryl-snow/3817411
 
-        if(strlen($str) == 0) return "";
+        if(strlen($str) ===  0) return "";
         $str = htmlentities($str, ENT_COMPAT, "UTF-8");
         $str = preg_replace('/&([a-zA-Z])(uml|acute|grave|circ|tilde);/', '$1', $str);
         return html_entity_decode($str);
