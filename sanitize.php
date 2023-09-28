@@ -5,7 +5,7 @@
  *                 PHP Sanitizer
  * 
  * 
- * @version 1.2.7
+ * @version 1.2.71
  * @author Thomas Tufta Løberg
  * @link https://github.com/thomastloberg/php-sanitizer
  * @license https://github.com/thomastloberg/php-sanitizer/LICENSE
@@ -374,12 +374,12 @@ class Sanitizer {
         }
 
     }
-    public function DEFAULT_EMPTY_VALUE     ($datatype=null) {
+    public function DEFAULT_EMPTY_VALUE       ($datatype=null) {
         /**
          * If variable is empty then return default value
          */
 
-        if($datatype != null && strtolower($datatype) == "array") {
+        if(!is_null($datatype) && strtolower($datatype) == "array") {
             return array();
         // } else if($datatype != null && strtolower($datatype) == "boolean") {
         //     return false;
@@ -387,7 +387,19 @@ class Sanitizer {
             return null;
         }
     }
-    public function RETURN_IF_NOT_EMPTY     ($var, $datatype=null) {
+    public function RETURN_IF_NOT_EMPTY       ($var, $datatype=null) {
+        if (is_string($var) || is_integer($var) || is_double($var) || is_float($var)) {
+            if (is_null($var) || strlen($var) === 0) {
+                if (empty($datatype)) {
+                    return $this->INVALID_DATA(gettype($var));
+                } else {
+                    return $this->INVALID_DATA($datatype);
+                }
+            }
+
+            return $var;
+        }
+
         if (empty($var)) {
             if (empty($datatype)) {
                 return $this->INVALID_DATA(gettype($var));
@@ -416,7 +428,7 @@ class Sanitizer {
 
         return $output;
     }
-    public function RETURN_ALL_EXCEPT_CHARS ($var, $deniedChars): string {
+    public function RETURN_ALL_EXCEPT_CHARS   ($var, $deniedChars): string {
         if(strlen($var) == 0) return "";
 
         $output = "";
@@ -687,7 +699,7 @@ class Sanitizer {
 
         return $this->RETURN_IF_NOT_EMPTY((string) $var);
     }
-    public function FUNCTION_FILTER_STRING_DENY_CUSTOM  ($var, $denyCustom, $flags=null) {
+    public function FUNCTION_FILTER_STRING_DENY_CUSTOM   ($var, $denyCustom, $flags=null) {
         // error prevention: if $var is string then return null
         if ($this->NOT_SANITIZABLE($var)) { return $this->INVALID_DATA("String"); }
 
@@ -961,7 +973,7 @@ class Sanitizer {
     }
 
     /* Helper Functions */
-    public function FUNCTION_SANITIZE_ARRAY_SINGLEKEY ($return_array, $arr, $filter, $flags) {
+    public function FUNCTION_SANITIZE_ARRAY_SINGLEKEY       ($return_array, $arr, $filter, $flags) {
         // error prevention: convert to array if isn't
         if (!is_array($flags))  $flags = array($flags);
         if (!is_array($arr))    return $this->INVALID_DATA("Array", gettype($arr));
@@ -1016,7 +1028,7 @@ class Sanitizer {
         // No value found
         return $this->INVALID_DATA("Array");
     }
-    public function FUNCTION_SANITIZE_ARRAY_MULTIPLEKEYS ($return_array, $arr, $filter, $flags) {
+    public function FUNCTION_SANITIZE_ARRAY_MULTIPLEKEYS    ($return_array, $arr, $filter, $flags) {
         // error prevention: convert to array if isn't
         if (!is_array($flags))  $flags = array($flags);
         if (!is_array($arr))    return $this->INVALID_DATA("Array", gettype($arr));
@@ -1068,13 +1080,13 @@ class Sanitizer {
         // Return result
         return $return_array;
     }
-    public function FUNCTION_ADD_BADFIELD      ($key, $value) {
+    public function FUNCTION_ADD_BADFIELD                   ($key, $value) {
         if (is_array($value) && count($value) === 2) return $value[1];
         return $key;
     }
 
     /* Helper Sanitizer */
-    public function REPLACE_ACCENTS         ($str): string {
+    public function REPLACE_ACCENTS                         ($str): string {
         // Remove Accent characters like: á => a
 
         // Credits: Darryl Snow
@@ -1085,14 +1097,14 @@ class Sanitizer {
         $str = preg_replace('/&([a-zA-Z])(uml|acute|grave|circ|tilde);/', '$1', $str);
         return html_entity_decode($str);
     }
-    public function REPLACE_NONPRINTABLE    ($str): string {
+    public function REPLACE_NONPRINTABLE                    ($str): string {
         // ASCII & UTF-8 compatible
         if(strlen($str) == 0) return "";
         return preg_replace('/[\x00-\x1F\x7F\xA0]/u', '', $str);
     }
 
     /* Helper Validations */
-    public function NOT_SANITIZABLE         ($var) {
+    public function NOT_SANITIZABLE                         ($var) {
         return ($var === '' || is_callable($var) || is_object($var) || is_array($var));
     }
     public function VALIDATE_REQUIRED_FIELDS_SINGLEKEY      ($arr, $required_array, $flags) {
